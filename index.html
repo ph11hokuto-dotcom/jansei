@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>雀聖への道</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="雀聖への道">
+<meta name="theme-color" content="#174836">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --felt:#1f5b45; --felt2:#174836; --ink:#f3efe2; --sub:#bcd3c6;
+  --tile:#fbf7ea; --tileEdge:#d9cfb2; --tileBack:#2e7d5b;
+  --man:#b8222a; --pin:#1c4fa0; --sou:#1d7a3a; --hon:#222;
+  --gold:#f2c14e; --ok:#7fd99a; --ng:#ff8a80; --panel:rgba(0,0,0,.22);
+  --tw:min(calc((100vw - 40px) / 14.6), 46px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--felt2);color:var(--ink);
+  font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;-webkit-tap-highlight-color:transparent}
+body{overflow:hidden}
+#app{height:100dvh;max-width:780px;margin:0 auto;display:flex;flex-direction:column;
+  background:radial-gradient(ellipse at 50% 30%,#277055 0%,var(--felt) 55%,var(--felt2) 100%);padding:8px 16px calc(8px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:8px}
+header h1{font-size:18px;margin:0;letter-spacing:.08em;white-space:nowrap}
+header .rank{margin-left:auto;font-size:12px;color:var(--sub);text-align:right;line-height:1.3}
+header .rank b{color:var(--gold);font-size:15px}
+.btn{border:0;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:700;cursor:pointer;
+  background:var(--ink);color:#1b3d30;font-family:inherit}
+.btn.small{padding:5px 10px;font-size:12px;border-radius:8px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid rgba(255,255,255,.45)}
+.btn.gold{background:var(--gold);color:#3a2a00}
+.btn.red{background:#e2574c;color:#fff}
+.btn.blue{background:#5b8fd9;color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+nav{display:flex;gap:6px;margin:8px 0 6px}
+nav button{flex:1;padding:8px 2px;border-radius:10px;border:0;font-size:14px;font-weight:700;cursor:pointer;
+  background:rgba(0,0,0,.2);color:var(--sub);font-family:inherit}
+nav button.on{background:var(--ink);color:#1b3d30}
+#sub{display:flex;gap:6px;align-items:center;min-height:30px;font-size:13px;color:var(--sub);flex-wrap:wrap}
+#sub .sp{margin-left:auto}
+.chip{border:1.5px solid rgba(255,255,255,.35);background:transparent;color:var(--ink);border-radius:999px;
+  padding:3px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.chip.on{background:var(--gold);color:#3a2a00;border-color:var(--gold);font-weight:700}
+main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.q{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.q small{font-weight:400;color:var(--sub);font-size:12px}
+.timer{margin-left:auto;font-size:13px;color:var(--sub);font-variant-numeric:tabular-nums}
+.bar{height:4px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold);width:100%;transition:width .2s linear}
+.hand{display:flex;justify-content:center;flex-wrap:nowrap;gap:1px;padding:6px 0}
+.tile{width:var(--tw);height:calc(var(--tw)*1.38);background:linear-gradient(180deg,#fffdf4,var(--tile));
+  border-radius:calc(var(--tw)*.14);box-shadow:0 calc(var(--tw)*.1) 0 var(--tileEdge),0 calc(var(--tw)*.13) 0 #9b8f6d,0 4px 8px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;position:relative;
+  font-family:"Yu Mincho","Hiragino Mincho ProN","MS Mincho",serif;font-weight:700;user-select:none;flex:none;transition:transform .12s;color:#1a1a1a}
+.tile .n{font-size:calc(var(--tw)*.52)}
+.tile .s{font-size:calc(var(--tw)*.36);margin-top:calc(var(--tw)*.06)}
+.tile.m .n{color:#1a1a1a}.tile.m .s{color:var(--man)}
+.tile.p .n{color:var(--pin);font-family:Georgia,"Times New Roman",serif}.tile.p .s{color:var(--pin)}
+.tile.s .n{color:var(--sou);font-family:Georgia,"Times New Roman",serif}.tile.s .s{color:var(--sou)}
+.tile.h .n{font-size:calc(var(--tw)*.72)}
+.tile.h.w .n{width:58%;height:62%;border:2px solid #4a7fd0;border-radius:3px}
+.tile.h.g .n{color:var(--sou)}.tile.h.r .n{color:var(--man)}
+.tile.click{cursor:pointer}
+.tile.sel{transform:translateY(-10px);outline:3px solid var(--gold);outline-offset:1px}
+.tile.mark{outline:3px solid var(--gold);outline-offset:1px}
+.tile.dim{opacity:.45}
+.tile.sideways{transform:rotate(90deg);margin:0 calc(var(--tw)*.2)}
+.result .tile{display:inline-flex;vertical-align:middle}
+.tile.mini{--tw:min(calc((100vw - 40px) / 22), 28px)}
+.tile.mini2{--tw:min(calc((100vw - 60px) / 11), 34px)}
+.gap{width:calc(var(--tw)*.35)}
+.picker{display:flex;flex-direction:column;gap:6px;align-items:center}
+.picker .row{display:flex;gap:3px;flex-wrap:nowrap}
+.picker .tile{--tw:min(calc((100vw - 60px) / 9.8), 40px);cursor:pointer;opacity:.6}
+.picker .tile.on{opacity:1;transform:translateY(-6px);outline:3px solid var(--gold)}
+.picker .tile.right{opacity:1;outline:3px solid var(--ok)}
+.picker .tile.wrong{opacity:1;outline:3px solid var(--ng)}
+.picker .tile.miss{opacity:1;outline:3px dashed var(--ok)}
+.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.result{flex:1;min-height:0;overflow:auto;background:var(--panel);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.6}
+.result:empty{display:none}
+.verdict{font-size:20px;font-weight:800;margin-bottom:2px}
+.verdict.ok{color:var(--ok)}.verdict.ng{color:var(--ng)}.verdict.mid{color:var(--gold)}
+.jikkyo{color:var(--gold);font-weight:700;margin-bottom:6px}
+.groups{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:3px 0 6px}
+.grp{display:flex;gap:1px;padding:2px;border-radius:5px}
+.grp.hit{background:rgba(242,193,78,.35)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+td,th{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left;vertical-align:middle;white-space:nowrap}
+th{color:var(--sub);font-weight:400}
+tr.best td{color:var(--ok);font-weight:700}
+.ukelist{display:flex;flex-wrap:wrap;gap:1px}
+.river{display:grid;grid-template-columns:repeat(6,max-content);gap:3px 1px;justify-content:center;padding:4px;background:rgba(0,0,0,.15);border-radius:8px}
+.river .tile{--tw:min(calc((100vw - 60px) / 12), 30px)}
+.oppbox{display:flex;gap:10px;align-items:center;justify-content:center}
+.opplabel{font-size:13px;line-height:1.5}
+.opplabel b{color:#ffb3a7;font-size:15px}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{background:var(--panel);border-radius:12px;padding:10px 12px}
+.card h3{margin:0 0 4px;font-size:14px}
+.card .big{font-size:22px;font-weight:800;color:var(--gold)}
+.note{font-size:11.5px;color:var(--sub)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px}
+.kv span:nth-child(odd){color:var(--sub)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111c;color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.on{opacity:1}
+.prog{height:8px;background:rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin:4px 0}
+.prog i{display:block;height:100%;background:var(--gold)}
+@media (max-width:420px){header h1{font-size:16px} nav button{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1><img src="icon.svg" alt="" width="26" height="26" style="border-radius:7px;vertical-align:-6px;margin-right:6px">雀聖への道</h1>
+    <button class="btn small ghost" id="saveBtn">セーブ</button>
+    <div class="rank" id="rank"></div>
+  </header>
+  <nav>
+    <button data-m="wait">待ち当て</button>
+    <button data-m="nani">何切る</button>
+    <button data-m="oshi">押し引き</button>
+    <button data-m="rec">記録</button>
+  </nav>
+  <div id="sub"></div>
+  <main id="main"></main>
+</div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ===== 牌の基本 ===== 0-8 萬子, 9-17 筒子, 18-26 索子, 27-33 東南西北白發中 */
+const KAN=['一','二','三','四','五','六','七','八','九'];
+const HON=['東','南','西','北','白','發','中'];
+const SUITNAME=['萬','筒','索'];
+const r=n=>Math.floor(Math.random()*n);
+const pick=a=>a[r(a.length)];
+const isHonor=t=>t>=27;
+const suitOf=t=>Math.floor(t/9);
+const numOf=t=>t%9+1;
+const zeros=()=>new Array(34).fill(0);
+const sum=c=>c.reduce((a,b)=>a+b,0);
+function tileName(t){ if(isHonor(t)) return HON[t-27]; return numOf(t)+SUITNAME[suitOf(t)]; }
+function tileEl(t,cls=''){
+  const d=document.createElement('div');
+  if(isHonor(t)){
+    const k=t-27; let c='h'; if(k===4)c+=' w'; if(k===5)c+=' g'; if(k===6)c+=' r';
+    d.className='tile '+c+' '+cls; d.innerHTML='<span class="n">'+(k===4?'':HON[k])+'</span>';
+  }else{
+    const s=suitOf(t), n=numOf(t);
+    d.className='tile '+['m','p','s'][s]+' '+cls;
+    d.innerHTML='<span class="n">'+(s===0?KAN[n-1]:n)+'</span><span class="s">'+SUITNAME[s]+'</span>';
+  }
+  d.dataset.t=t; return d;
+}
+function toList(c){const a=[];for(let i=0;i<34;i++)for(let k=0;k<c[i];k++)a.push(i);return a;}
+
+/* ===== 和了判定・分解 ===== */
+function findMelds(c,i,ms){
+  while(i<34&&c[i]===0)i++;
+  if(i>=34)return true;
+  if(c[i]>=3){c[i]-=3;ms.push([i,i,i]);if(findMelds(c,i,ms)){c[i]+=3;return true;}ms.pop();c[i]+=3;}
+  if(i<27&&i%9<=6&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;ms.push([i,i+1,i+2]);
+    const ok=findMelds(c,i,ms);c[i]++;c[i+1]++;c[i+2]++;if(ok)return true;ms.pop();}
+  return false;
+}
+const YAO=[0,8,9,17,18,26,27,28,29,30,31,32,33];
+function decompose(c){ // 14枚
+  for(let i=0;i<34;i++)if(c[i]>=2){c[i]-=2;const ms=[];const ok=findMelds(c,0,ms);c[i]+=2;
+    if(ok)return {groups:[[i,i],...ms]};}
+  let p=0;for(let i=0;i<34;i++)if(c[i]===2)p++;
+  if(p===7){const g=[];for(let i=0;i<34;i++)if(c[i]===2)g.push([i,i]);return {groups:g,chiitoi:true};}
+  let k=0,pr=0;for(const y of YAO){if(c[y])k++;if(c[y]>=2)pr++;}
+  if(k===13&&pr===1)return {groups:[toList(c)],kokushi:true};
+  return null;
+}
+function waitsOf(c13){
+  const w=[];
+  for(let t=0;t<34;t++){ if(c13[t]>=4)continue; c13[t]++; if(decompose(c13))w.push(t); c13[t]--; }
+  return w;
+}
+
+/* ===== 向聴数 ===== */
+function shNormal(c){
+  let best=8;
+  function dfs(i,m,t,p){
+    while(i<34&&c[i]===0)i++;
+    if(i>=34){const tt=Math.min(t,4-m);const s=8-2*m-tt-p;if(s<best)best=s;return;}
+    if(c[i]>=3){c[i]-=3;dfs(i,m+1,t,p);c[i]+=3;}
+    if(i<27&&i%9<=6&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;dfs(i,m+1,t,p);c[i]++;c[i+1]++;c[i+2]++;}
+    if(c[i]>=2){c[i]-=2;if(!p)dfs(i,m,t,1);if(m+t<4)dfs(i,m,t+1,p);c[i]+=2;}
+    if(m+t<4){
+      if(i<27&&i%9<=7&&c[i+1]){c[i]--;c[i+1]--;dfs(i,m,t+1,p);c[i]++;c[i+1]++;}
+      if(i<27&&i%9<=6&&c[i+2]){c[i]--;c[i+2]--;dfs(i,m,t+1,p);c[i]++;c[i+2]++;}
+    }
+    const v=c[i];c[i]=0;dfs(i+1,m,t,p);c[i]=v; // 残りは孤立牌
+  }
+  dfs(0,0,0,0);return best;
+}
+function shChiitoi(c){let p=0,k=0;for(let i=0;i<34;i++){if(c[i])k++;if(c[i]>=2)p++;}return 6-p+Math.max(0,7-k);}
+function shKokushi(c){let k=0,p=0;for(const y of YAO){if(c[y]){k++;if(c[y]>=2)p=1;}}return 13-k-p;}
+function shanten(c){return Math.min(shNormal(c),shChiitoi(c),shKokushi(c));}
+function ukeire(c13,seen){ // seen: 見えている枚数（自分の手以外）
+  const s=shanten(c13);const list=[];let total=0;
+  for(let t=0;t<34;t++){
+    const rest=4-c13[t]-(seen?seen[t]:0); if(rest<=0)continue;
+    c13[t]++; if(shanten(c13)<s){list.push(t);total+=rest;} c13[t]--;
+  }
+  return {s,list,total};
+}
+function evalDiscards(c14,seen){
+  const res=[];
+  for(let t=0;t<34;t++){ if(!c14[t])continue; c14[t]--; const u=ukeire(c14,seen); c14[t]++; res.push({t,...u}); }
+  res.sort((a,b)=>a.s-b.s||b.total-a.total||b.list.length-a.list.length);
+  return res;
+}
+
+/* ===== 手牌の生成 ===== */
+function genComplete(suits,honorP){
+  for(let tries=0;tries<300;tries++){
+    const c=zeros(); const num=()=>pick(suits)*9+r(9);
+    const p=(honorP>0&&Math.random()<honorP)?27+r(7):num(); c[p]+=2;
+    let ok=true;
+    for(let k=0;k<4&&ok;k++){
+      let placed=false;
+      for(let a=0;a<30&&!placed;a++){
+        const x=Math.random();
+        if(honorP>0&&x<honorP){const t=27+r(7);if(c[t]<=1){c[t]+=3;placed=true;}}
+        else if(x<0.78){const t=pick(suits)*9+r(7);if(c[t]<4&&c[t+1]<4&&c[t+2]<4){c[t]++;c[t+1]++;c[t+2]++;placed=true;}}
+        else{const t=num();if(c[t]<=1){c[t]+=3;placed=true;}}
+      }
+      if(!placed)ok=false;
+    }
+    if(ok)return c;
+  }
+  return null;
+}
+function removeRandom(c){const l=toList(c);const t=pick(l);c[t]--;return t;}
+function addRandom(c,honorP){
+  for(let a=0;a<50;a++){const t=Math.random()<honorP?27+r(7):r(27);if(c[t]<4){c[t]++;return t;}}
+}
+
+/* ===== 保存 ===== */
+const KEY='jansei-dojo-v1';
+const blank=()=>({wait:{n:0,ok:0,streak:0,best:0},nani:{n:0,ok:0,streak:0,best:0},oshi:{n:0,ok:0,streak:0,best:0},opt:{wsub:'normal',timer:true}});
+let S=blank();
+try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.wait)S=Object.assign(blank(),v);}catch(e){}
+function save(show){try{localStorage.setItem(KEY,JSON.stringify(S));if(show)toast('セーブしました');}catch(e){if(show)toast('この画面では保存できませんでした');}}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),1600);}
+document.getElementById('saveBtn').onclick=()=>save(true);
+
+/* ===== 段位 ===== */
+const RANKS=[[0,'10級'],[5,'9級'],[10,'8級'],[15,'7級'],[20,'6級'],[25,'5級'],[30,'4級'],[35,'3級'],[40,'2級'],[45,'1級'],
+  [55,'初段'],[70,'二段'],[90,'三段'],[115,'四段'],[145,'五段'],[180,'六段'],[220,'七段'],[270,'八段'],[330,'九段'],[400,'雀聖']];
+function totalOk(){return S.wait.ok+S.nani.ok+S.oshi.ok;}
+function rankInfo(){const n=totalOk();let i=0;for(let k=0;k<RANKS.length;k++)if(n>=RANKS[k][0])i=k;
+  const next=RANKS[i+1];return {name:RANKS[i][1],next:next?next[0]-n:0,nextName:next?next[1]:null,i,n};}
+function renderRank(){const R=rankInfo();document.getElementById('rank').innerHTML='段位 <b>'+R.name+'</b><br>'+(R.nextName?'あと'+R.next+'問で'+R.nextName:'頂点に到達');}
+function record(mode,ok){
+  const before=rankInfo().name; const m=S[mode]; m.n++; if(ok){m.ok++;m.streak++;if(m.streak>m.best)m.best=m.streak;}else m.streak=0;
+  save(false); renderRank(); const after=rankInfo().name; if(after!==before)toast('昇段！ '+after+' になりました');
+}
+
+/* ===== 実況風コメント ===== */
+const J_OK=['これは見事！ 迷いのない一打です！','完璧な読み！ 卓上がざわついています！','さすがの精度！ 雀聖への階段をひとつ上がりました！',
+  '素晴らしい！ 解説席も唸っています！','理詰めの選択、これぞ本手！'];
+const J_NG=['おっと、ここは痛い選択！','うーん、惜しい！ 次で取り返しましょう！','これは悔しい！ 解説を見て復習です！','見落としがありました！ ここは修行の場です！'];
+const J_PUSH=['真っ直ぐ行ったー！ 勝負の一打！','押した！ 押した！ 強気の選択！'];
+const J_FOLD=['ここは我慢！ 冷静にベタオリ！','引いた！ 大人の判断です！'];
+
+/* ===== 画面 ===== */
+const main=document.getElementById('main'), sub=document.getElementById('sub');
+let mode='wait', Q=null, timerH=null;
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+function setMode(m){mode=m;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));stopTimer();
+  if(m==='wait')newWait();else if(m==='nani')newNani();else if(m==='oshi')newOshi();else renderRec();}
+function h(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function handEl(list,opts={}){
+  const d=h('div','hand');list.forEach((t,i)=>{const e=tileEl(t,opts.cls||'');if(opts.mark===i)e.classList.add('mark');
+    if(opts.onClick){e.classList.add('click');e.onclick=()=>opts.onClick(t,i,e);}d.appendChild(e);});return d;}
+function groupsEl(groups,hitTile,cls='mini'){
+  const g=h('div','groups');let hit=false;
+  groups.forEach(gr=>{const x=h('div','grp');if(!hit&&hitTile!=null&&gr.includes(hitTile)){x.classList.add('hit');hit=true;}
+    gr.forEach(t=>x.appendChild(tileEl(t,cls)));g.appendChild(x);});return g;}
+function tilesInline(list,cls='mini'){const d=h('span','ukelist');list.forEach(t=>d.appendChild(tileEl(t,cls)));return d;}
+function subBar(chips,right){
+  sub.innerHTML='';chips.forEach(c=>{const b=h('button','chip'+(c.on?' on':''),c.label);b.onclick=c.fn;sub.appendChild(b);});
+  const sp=h('span','sp');sp.innerHTML=right||'';sub.appendChild(sp);
+}
+function timerChip(){return {label:'時間制限 '+(S.opt.timer?'あり':'なし'),on:S.opt.timer,fn:()=>{S.opt.timer=!S.opt.timer;save(false);setMode(mode);}};}
+function startTimer(sec,barEl,txtEl,onEnd){
+  stopTimer(); const t0=Date.now();
+  const tick=()=>{const el=(Date.now()-t0)/1000;
+    if(S.opt.timer){const left=Math.max(0,sec-el);txtEl.textContent='残り '+left.toFixed(0)+'秒';barEl.style.width=(left/sec*100)+'%';
+      if(left<=0){stopTimer();onEnd();}}
+    else{txtEl.textContent=el.toFixed(0)+'秒';barEl.style.width='100%';}};
+  tick();timerH=setInterval(tick,200);Q.t0=t0;
+}
+function stopTimer(){if(timerH){clearInterval(timerH);timerH=null;}}
+function streakText(m){return '連続正解 '+S[m].streak+'（最高 '+S[m].best+'）';}
+
+/* ---------- 待ち当て ---------- */
+function newWait(){
+  const chin=S.opt.wsub==='chin';
+  let c,w;
+  for(let a=0;a<500;a++){
+    const suits=chin?[r(3)]:[0,1,2].sort(()=>Math.random()-.5).slice(0,2);
+    c=genComplete(suits,chin?0:0.12); if(!c)continue;
+    removeRandom(c); w=waitsOf(c);
+    if(!w.length)continue;
+    if(chin&&w.length<2)continue;
+    if(!chin&&w.length<2&&Math.random()<0.7)continue;
+    break;
+  }
+  Q={c,w,sel:new Set(),done:false};
+  subBar([{label:'ふつう',on:!chin,fn:()=>{S.opt.wsub='normal';save(false);newWait();}},
+          {label:'清一色',on:chin,fn:()=>{S.opt.wsub='chin';save(false);newWait();}},timerChip()],streakText('wait'));
+  main.innerHTML='';
+  const q=h('div','q','この手の待ちは？ <small>当たり牌をすべて選んでください</small>');const tm=h('span','timer');q.appendChild(tm);main.appendChild(q);
+  const bar=h('div','bar');const bi=h('i');bar.appendChild(bi);main.appendChild(bar);
+  main.appendChild(handEl(toList(c)));
+  // 選ぶ牌
+  const pk=h('div','picker');const used=new Set(toList(c).map(t=>isHonor(t)?3:suitOf(t)));
+  [0,1,2,3].filter(s=>used.has(s)).forEach(s=>{const row=h('div','row');
+    const ts=s<3?[...Array(9)].map((_,i)=>s*9+i):[27,28,29,30,31,32,33];
+    ts.forEach(t=>{const e=tileEl(t);e.onclick=()=>{if(Q.done)return;Q.sel.has(t)?Q.sel.delete(t):Q.sel.add(t);e.classList.toggle('on');};row.appendChild(e);});
+    pk.appendChild(row);});
+  main.appendChild(pk);Q.pk=pk;
+  const act=h('div','actions');const b1=h('button','btn gold','答える');b1.onclick=()=>answerWait(false);
+  const b2=h('button','btn ghost','次の問題');b2.onclick=newWait;act.append(b1,b2);main.appendChild(act);Q.b1=b1;
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+  startTimer(chin?60:30,bi,tm,()=>answerWait(true));
+}
+function answerWait(timeout){
+  if(Q.done)return;Q.done=true;stopTimer();Q.b1.disabled=true;
+  const ans=new Set(Q.w);const ok=!timeout&&ans.size===Q.sel.size&&[...ans].every(t=>Q.sel.has(t));
+  Q.pk.querySelectorAll('.tile').forEach(e=>{const t=+e.dataset.t;e.classList.remove('on');
+    if(ans.has(t))e.classList.add(Q.sel.has(t)?'right':'miss');else if(Q.sel.has(t))e.classList.add('wrong');});
+  record('wait',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':(timeout?'時間切れ':'不正解')));
+  R.appendChild(h('div','jikkyo',pick(ok?J_OK:J_NG)));
+  const p=h('div',null,'待ちは <b>'+Q.w.length+'種</b>：');p.appendChild(tilesInline(Q.w));R.appendChild(p);
+  R.appendChild(h('div','note','緑の実線＝選べた待ち、緑の点線＝見落とし、赤＝待ちではない牌。下は和了したときの形の一例です（黄色が和了牌の入った部分）。'));
+  Q.w.forEach(t=>{const c=Q.c.slice();c[t]++;const d=decompose(c);
+    const line=h('div',null);line.appendChild(h('div',null,'<b>'+tileName(t)+'</b> で和了'+(d.chiitoi?'（七対子）':d.kokushi?'（国士無双）':'')));
+    line.appendChild(groupsEl(d.groups,t));R.appendChild(line);});
+  renderStreak('wait');
+}
+function renderStreak(m){const sp=sub.querySelector('.sp');if(sp)sp.textContent=streakText(m);}
+
+/* ---------- 何切る ---------- */
+function genNani(target){ // target: 打牌後の向聴数（0 か 1、押し引きでは 2 も）
+  for(let a=0;a<800;a++){
+    const c=genComplete([0,1,2],0.1); if(!c)continue;
+    const k=target===2?4:(target===1?3:2);
+    for(let i=0;i<k;i++)removeRandom(c);
+    for(let i=0;i<k;i++)addRandom(c,0.15);
+    const s=shanten(c);
+    if(s<0)continue;
+    if(target!=null?s!==target:(s>1))continue;
+    return c;
+  }
+  return null;
+}
+function newNani(){
+  let c,ev;
+  for(let a=0;a<60;a++){
+    c=genNani(Math.random()<0.45?0:1); if(!c)continue;
+    ev=evalDiscards(c);
+    const s0=ev[0].s;const same=ev.filter(e=>e.s===s0);
+    const best=same.filter(e=>e.total===same[0].total);
+    if(same.length<3||best.length>2)continue;
+    if(same[best.length]&&same[best.length].total===best[0].total)continue;
+    break;
+  }
+  Q={c,ev,sel:null,done:false};
+  subBar([timerChip()],streakText('nani'));
+  main.innerHTML='';
+  const q=h('div','q','何を切る？ <small>受け入れ枚数がいちばん多くなる1枚</small>');const tm=h('span','timer');q.appendChild(tm);main.appendChild(q);
+  const bar=h('div','bar');const bi=h('i');bar.appendChild(bi);main.appendChild(bar);
+  const list=toList(c);
+  const hd=handEl(list,{onClick:(t,i,e)=>{if(Q.done)return;
+    if(Q.selEl===e){answerNani(t);return;}
+    if(Q.selEl)Q.selEl.classList.remove('sel');Q.selEl=e;Q.sel=t;e.classList.add('sel');Q.b1.disabled=false;}});
+  main.appendChild(hd);Q.hd=hd;
+  main.appendChild(h('div','note','<div style="text-align:center">牌をタップで選ぶ → もう一度タップか「これを切る」で決定</div>'));
+  const act=h('div','actions');const b1=h('button','btn gold','これを切る');b1.disabled=true;b1.onclick=()=>answerNani(Q.sel);
+  const b2=h('button','btn ghost','次の問題');b2.onclick=newNani;act.append(b1,b2);main.appendChild(act);Q.b1=b1;
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+  startTimer(25,bi,tm,()=>answerNani(null));
+}
+function answerNani(t){
+  if(Q.done)return;Q.done=true;stopTimer();Q.b1.disabled=true;
+  const ev=Q.ev;const b=ev[0];const best=ev.filter(e=>e.s===b.s&&e.total===b.total);
+  const mine=t==null?null:ev.find(e=>e.t===t);
+  const ok=mine&&best.some(e=>e.t===t);
+  Q.hd.querySelectorAll('.tile').forEach(e=>{if(best.some(x=>x.t===+e.dataset.t))e.classList.add('mark');});
+  record('nani',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':(t==null?'時間切れ':'不正解')));
+  R.appendChild(h('div','jikkyo',pick(ok?J_OK:J_NG)));
+  const shTxt=s=>s===0?'テンパイ':s+'シャンテン';
+  const p=h('div',null,'正解：');best.forEach(e=>p.appendChild(tileEl(e.t,'mini')));
+  p.insertAdjacentHTML('beforeend',' 切り → '+shTxt(b.s)+'・受け入れ <b>'+b.list.length+'種'+b.total+'枚</b>');
+  if(mine&&!ok)p.insertAdjacentHTML('beforeend','<br>あなた：'+tileName(t)+'切り → '+shTxt(mine.s)+'・'+mine.list.length+'種'+mine.total+'枚');
+  R.appendChild(p);
+  const tb=h('table');tb.innerHTML='<tr><th>切る牌</th><th>向聴</th><th>受け入れ</th><th>有効牌</th></tr>';
+  ev.slice(0,6).forEach(e=>{const tr=h('tr',best.includes(e)?'best':'');
+    const td0=h('td');td0.appendChild(tileEl(e.t,'mini'));
+    const td3=h('td');td3.appendChild(tilesInline(e.list));
+    tr.append(td0,h('td',null,shTxt(e.s)),h('td',null,e.list.length+'種'+e.total+'枚'),td3);tb.appendChild(tr);});
+  R.appendChild(tb);
+  R.appendChild(h('div','note','受け入れ枚数は、自分の手にある牌だけを除いた残り枚数で数えています（打点・手役は考えない、牌効率だけの正解です）。'));
+  renderStreak('nani');
+}
+
+/* ---------- 押し引き ---------- */
+const SEATS=['下家','対面','上家'];
+function dangerOf(t,riverSet,visible){
+  if(riverSet.has(t))return {p:0,label:'現物'};
+  if(isHonor(t)){const v=visible[t];
+    if(v>=3)return {p:0.01,label:'字牌（3枚見え）'};
+    if(v===2)return {p:0.02,label:'字牌（2枚見え）'};
+    if(v===1)return {p:0.04,label:'字牌（1枚見え）'};
+    return {p:0.07,label:'字牌（生牌）'};}
+  const n=numOf(t),base=suitOf(t)*9;
+  const has=k=>k>=1&&k<=9&&riverSet.has(base+k-1);
+  const lo=has(n-3),hi=has(n+3);
+  if(n===1||n===9){const s=n===1?hi:lo;return s?{p:0.03,label:'スジの'+n}:{p:0.06,label:'無スジの'+n};}
+  if(n===2||n===8){const s=n===2?hi:lo;return s?{p:0.04,label:'スジの'+n}:{p:0.08,label:'無スジの'+n};}
+  if(n===3||n===7){const s=n===3?hi:lo;return s?{p:0.05,label:'スジの'+n}:{p:0.10,label:'無スジの'+n};}
+  if(lo&&hi)return {p:0.04,label:'両スジの'+n};
+  if(lo||hi)return {p:0.08,label:'片スジの'+n};
+  return {p:0.13,label:'無スジの'+n};
+}
+function newOshi(){
+  let c,ev,river,riverSet,push,dan,target,visible,seen,turn,riichiAt;
+  for(let a=0;a<80;a++){
+    const x=Math.random();target=x<0.5?0:x<0.85?1:2;
+    c=genNani(target);if(!c)continue;
+    // 山の残りから相手の河を作る（序盤は字牌・端牌が多め）
+    const pool=zeros();for(let i=0;i<34;i++)pool[i]=4-c[i];
+    const len=6+r(8);river=[];
+    for(let k=0;k<len;k++){let t;
+      for(let z=0;z<40;z++){t=r(34);if(!pool[t])continue;
+        const edge=isHonor(t)||numOf(t)===1||numOf(t)===9;
+        if(k<4&&!edge&&Math.random()<0.6)continue;break;}
+      if(pool[t]){pool[t]--;river.push(t);}}
+    riverSet=new Set(river);
+    seen=zeros();river.forEach(t=>seen[t]++);
+    ev=evalDiscards(c,seen);push=ev[0];
+    dan=dangerOf(push.t,riverSet,(()=>{const v=seen.slice();for(let i=0;i<34;i++)v[i]+=c[i]-(i===push.t?1:0);return v;})());
+    if(dan.p===0)continue;
+    if(target===0&&push.total===0)continue;
+    turn=river.length+1;riichiAt=Math.max(4,river.length-r(4))-1;break;
+  }
+  const oppDealer=Math.random()<0.25;
+  const myVal=pick(target===2?[1000,2000,3900,8000,12000]:[1000,1300,2000,2600,3900,5200,7700,8000,12000]);
+  const oppVal=oppDealer?8000:5500;
+  const seat=pick(SEATS);
+  // 和了率の目安
+  const tf=Math.min(1,Math.max(0.2,(18-turn)/10));
+  let base,shape;
+  if(push.s===0){if(push.total>=6){base=0.45;shape='テンパイ（良形・残り'+push.total+'枚）';}else if(push.total>=3){base=0.32;shape='テンパイ（愚形・残り'+push.total+'枚）';}else{base=0.18;shape='テンパイ（残り'+push.total+'枚）';}}
+  else if(push.s===1){base=push.total>=20?0.20:0.14;shape='1シャンテン（受け入れ'+push.total+'枚）';}
+  else{base=0.05;shape='2シャンテン';}
+  const win=base*tf;
+  const k=push.s===0?2:push.s===1?4:6;
+  const deal=1-(1-dan.p)*Math.pow(1-0.07,k-1);
+  const evPush=win*myVal-deal*oppVal;
+  Q={c,ev,push,dan,river,riichiAt,turn,myVal,oppVal,oppDealer,seat,win,deal,evPush,shape,k,done:false};
+  subBar([],streakText('oshi'));
+  main.innerHTML='';
+  const q=h('div','q',turn+'巡目、'+seat+'からリーチ！ <small>押す？ 降りる？</small>');main.appendChild(q);
+  const box=h('div','oppbox');
+  const lab=h('div','opplabel','<b>'+seat+' リーチ</b><br>'+(oppDealer?'親':'子')+'のリーチ<br>あなたの手：<b style="color:var(--gold)">'+myVal.toLocaleString()+'点</b><br><span class="note">（ドラ込みの想定）</span>');
+  const rv=h('div','river');river.forEach((t,i)=>rv.appendChild(tileEl(t,i===riichiAt?'sideways':'')));
+  box.append(rv,lab);main.appendChild(box);
+  const list=toList(c);const mi=list.indexOf(push.t);
+  main.appendChild(handEl(list,{mark:mi}));
+  main.appendChild(h('div','note','<div style="text-align:center">黄色の枠＝手を進めるなら切りたい牌（'+tileName(push.t)+'）。押すならこれを切り、降りるなら安全な牌を切ります。</div>'));
+  const act=h('div','actions');
+  const b1=h('button','btn red','押す（'+tileName(push.t)+'を切る）');b1.onclick=()=>answerOshi(true);
+  const b2=h('button','btn blue','降りる');b2.onclick=()=>answerOshi(false);
+  const b3=h('button','btn ghost','次の場面');b3.onclick=newOshi;act.append(b1,b2,b3);main.appendChild(act);Q.bs=[b1,b2];
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+}
+function answerOshi(push){
+  if(Q.done)return;Q.done=true;Q.bs.forEach(b=>b.disabled=true);
+  const ev=Q.evPush;const close=Math.abs(ev)<250;const right=ev>0;
+  const ok=close||push===right;
+  record('oshi',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(close?'mid':ok?'ok':'ng'),close?'どちらもアリ！（きわどい場面）':ok?'正解！':'不正解'));
+  R.appendChild(h('div','jikkyo',pick(push?J_PUSH:J_FOLD)+' '+pick(ok?J_OK:J_NG)));
+  const pct=x=>(x*100).toFixed(0)+'%';
+  const kv=h('div','kv');
+  kv.innerHTML='<span>おすすめ</span><span><b>'+(close?'どちらでも':right?'押す':'降りる')+'</b></span>'+
+    '<span>あなたの手</span><span>'+Q.shape+'、'+Q.myVal.toLocaleString()+'点</span>'+
+    '<span>'+tileName(Q.push.t)+'の危険度</span><span>'+Q.dan.label+' → 放銃率 約'+pct(Q.dan.p)+'</span>'+
+    '<span>和了率の目安</span><span>約'+pct(Q.win)+'（'+Q.turn+'巡目）</span>'+
+    '<span>放銃率の目安</span><span>約'+pct(Q.deal)+'（あと'+Q.k+'枚ほど危険牌を切る想定）</span>'+
+    '<span>相手の打点</span><span>'+Q.oppVal.toLocaleString()+'点（'+(Q.oppDealer?'親':'子')+'リーチの平均くらい）</span>'+
+    '<span>押したときの損得</span><span><b>'+(ev>=0?'+':'')+Math.round(ev).toLocaleString()+'点</b>（和了率×自分の打点 − 放銃率×相手の打点）</span>';
+  R.appendChild(kv);
+  const pts=[];
+  if(Q.push.s>=2)pts.push('2シャンテンからの押しは、満貫以上でもかなり厳しいのが基本です。');
+  if(Q.push.s===0&&Q.push.total>=6)pts.push('良形テンパイは、多少安くても押しが基本です。');
+  if(Q.push.s===0&&Q.push.total<3)pts.push('待ちの残りが少ないテンパイは、和了率が下がるぶん打点が必要です。');
+  if(Q.dan.p>=0.1)pts.push('無スジの真ん中の牌は、とくに危険です。');
+  if(Q.dan.p<=0.03)pts.push('切りたい牌が比較的安全なので、押しやすい場面です。');
+  if(Q.turn>=13)pts.push('終盤は和了率が下がるので、降りが増えます。');
+  if(pts.length)R.appendChild(h('div',null,'ポイント：'+pts.join(' ')));
+  R.appendChild(h('div','note','数値は一般に知られる統計の傾向をもとにした概数で、手順を簡単にした目安の判定です（他家の動き・点数状況・裏ドラなどは考えていません）。'));
+  renderStreak('oshi');
+}
+
+/* ---------- 記録 ---------- */
+function renderRec(){
+  subBar([],'');main.innerHTML='';const R=rankInfo();
+  const top=h('div','card');
+  const curMin=RANKS[R.i][0],nxt=RANKS[R.i+1];const w=nxt?((R.n-curMin)/(nxt[0]-curMin)*100):100;
+  top.innerHTML='<h3>段位</h3><div class="big">'+R.name+'</div><div class="prog"><i style="width:'+w+'%"></i></div>'+
+    '<div class="note">正解の合計 '+R.n+'問。'+(nxt?'あと'+R.next+'問で'+nxt[1]+'。':'雀聖に到達しました。')+'雀聖は正解400問。</div>';
+  main.appendChild(top);
+  const st=h('div','stat');
+  [['wait','待ち当て'],['nani','何切る'],['oshi','押し引き']].forEach(([k,n])=>{const m=S[k];
+    const c=h('div','card');c.innerHTML='<h3>'+n+'</h3><div class="kv"><span>正解</span><span>'+m.ok+' / '+m.n+'問'+(m.n?'（'+Math.round(m.ok/m.n*100)+'%）':'')+'</span><span>連続正解</span><span>'+m.streak+'</span><span>最高記録</span><span>'+m.best+'連続</span></div>';
+    st.appendChild(c);});
+  const c4=h('div','card');c4.innerHTML='<h3>保存</h3><div class="note" style="margin-bottom:6px">記録はこの端末のブラウザに保存されます。答えるたびに自動で保存し、上の「セーブ」でも保存できます。</div>';
+  const rb=h('button','btn small ghost','記録を消す');rb.onclick=()=>{if(rb.dataset.c){S=blank();save(true);renderRank();renderRec();}else{rb.dataset.c=1;rb.textContent='もう一度押すと消えます';}};
+  c4.appendChild(rb);st.appendChild(c4);main.appendChild(st);
+}
+
+renderRank();setMode('wait');
+</script>
+</body>
+</html>
