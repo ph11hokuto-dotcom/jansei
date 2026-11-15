@@ -57,20 +57,20 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding-top:
   border-radius:calc(var(--tw)*.14);box-shadow:0 calc(var(--tw)*.1) 0 var(--tileEdge),0 calc(var(--tw)*.13) 0 #9b8f6d,0 4px 8px rgba(0,0,0,.35);
   display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;position:relative;
   font-family:"Yu Mincho","Hiragino Mincho ProN","MS Mincho",serif;font-weight:700;user-select:none;flex:none;transition:transform .12s;color:#1a1a1a}
-.tile .n{font-size:calc(var(--tw)*.52)}
-.tile .s{font-size:calc(var(--tw)*.36);margin-top:calc(var(--tw)*.06)}
+.tile .face{display:flex;flex-direction:column;align-items:center;justify-content:center;width:86%;height:88%;flex:none}
+.tile .face svg{width:100%;height:100%;display:block}
+.tile .n{font-size:calc(var(--tw)*.56);line-height:1}
+.tile .s{font-size:calc(var(--tw)*.5);line-height:1;margin-top:calc(var(--tw)*.04)}
 .tile.m .n{color:#1a1a1a}.tile.m .s{color:var(--man)}
-.tile.p .n{color:var(--pin);font-family:Georgia,"Times New Roman",serif}.tile.p .s{color:var(--pin)}
-.tile.s .n{color:var(--sou);font-family:Georgia,"Times New Roman",serif}.tile.s .s{color:var(--sou)}
-.tile.h .n{font-size:calc(var(--tw)*.72)}
-.tile.h.w .n{width:58%;height:62%;border:2px solid #4a7fd0;border-radius:3px}
+.tile.h .n{font-size:calc(var(--tw)*.74)}
+.tile.h.w .face{width:62%;height:66%;border:calc(var(--tw)*.05) solid #4a7fd0;border-radius:calc(var(--tw)*.06)}
 .tile.h.g .n{color:var(--sou)}.tile.h.r .n{color:var(--man)}
 .tile.click{cursor:pointer}
 .tile.sel{transform:translateY(-10px);outline:3px solid var(--gold);outline-offset:1px}
 .tile.mark{outline:3px solid var(--gold);outline-offset:1px}
 .tile.dim{opacity:.45}
-.tile.sideways{width:calc(var(--tw)*1.38);height:var(--tw);flex-direction:row;gap:calc(var(--tw)*.08);align-self:end}
-.tile.sideways .n,.tile.sideways .s{transform:rotate(90deg);margin:0}
+.tile.sideways{width:calc(var(--tw)*1.38);height:var(--tw);align-self:end}
+.tile.sideways .face{width:calc(var(--tw)*.86);height:calc(var(--tw)*1.2);transform:rotate(90deg)}
 .result .tile{display:inline-flex;vertical-align:middle}
 .tile.mini{--tw:min(calc((100vw - 40px) / 22), 28px)}
 .tile.mini2{--tw:min(calc((100vw - 60px) / 11), 34px)}
@@ -96,7 +96,8 @@ td,th{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.12);text-align:l
 th{color:var(--sub);font-weight:400}
 tr.best td{color:var(--ok);font-weight:700}
 .ukelist{display:flex;flex-wrap:wrap;gap:1px}
-.river{display:grid;grid-template-columns:repeat(6,max-content);gap:3px 1px;justify-content:center;padding:4px;background:rgba(0,0,0,.15);border-radius:8px}
+.rrow{display:flex;gap:1px;align-items:flex-end}
+.river{display:flex;flex-direction:column;gap:3px;padding:4px;background:rgba(0,0,0,.15);border-radius:8px}
 .river .tile{--tw:min(calc((100vw - 60px) / 12), 30px)}
 .oppbox{display:flex;gap:10px;align-items:center;justify-content:center}
 .opplabel{font-size:13px;line-height:1.5}
@@ -119,7 +120,7 @@ tr.best td{color:var(--ok);font-weight:700}
 <div id="app">
   <header>
     <h1><img src="icon.svg" alt="" width="26" height="26" style="border-radius:7px;vertical-align:-6px;margin-right:6px">雀聖への道</h1>
-    <button class="btn small ghost" id="saveBtn">セーブ</button><span style="font-size:10px;color:var(--sub)">v4</span>
+    <button class="btn small ghost" id="saveBtn">セーブ</button><span style="font-size:10px;color:var(--sub)">v5</span>
     <div class="rank" id="rank"></div>
   </header>
   <nav>
@@ -146,17 +147,54 @@ const numOf=t=>t%9+1;
 const zeros=()=>new Array(34).fill(0);
 const sum=c=>c.reduce((a,b)=>a+b,0);
 function tileName(t){ if(isHonor(t)) return HON[t-27]; return numOf(t)+SUITNAME[suitOf(t)]; }
+/* 牌の絵柄（SVG, 60x80） */
+const CB='#1c4fa0',CG='#1d7a3a',CR='#c8202a';
+function pc(x,y,r,col){return `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${col}" stroke-width="${(r*.24).toFixed(2)}"/>`+
+  `<circle cx="${x}" cy="${y}" r="${(r*.6).toFixed(2)}" fill="${col}"/><circle cx="${x}" cy="${y}" r="${(r*.3).toFixed(2)}" fill="#fff"/><circle cx="${x}" cy="${y}" r="${(r*.13).toFixed(2)}" fill="${col}"/>`;}
+function st(x,y,h,col,rot=0){const w=8.4,q=h/2;
+  return `<g transform="translate(${x} ${y}) rotate(${rot})"><rect x="${-w/2}" y="${-q}" width="${w}" height="${h}" rx="3" fill="${col}"/>`+
+  `<rect x="${-w/2-0.6}" y="-1.1" width="${w+1.2}" height="2.2" rx="1" fill="${col}"/><line x1="0" y1="${-q+2.5}" x2="0" y2="-2.6" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".75"/>`+
+  `<line x1="0" y1="2.6" x2="0" y2="${q-2.5}" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".75"/></g>`;}
+const PIN={
+ 1:()=>{let d='';for(let k=0;k<12;k++){const a=k*Math.PI/6;d+=`<circle cx="${(30+19*Math.cos(a)).toFixed(1)}" cy="${(40+19*Math.sin(a)).toFixed(1)}" r="2.6" fill="${CG}"/>`;}
+   return `<circle cx="30" cy="40" r="26" fill="#fff" stroke="${CB}" stroke-width="2.6"/>${d}<circle cx="30" cy="40" r="13" fill="${CR}"/><circle cx="30" cy="40" r="8" fill="#fff"/><circle cx="30" cy="40" r="4.5" fill="${CB}"/>`;},
+ 2:()=>pc(30,21,13,CG)+pc(30,59,13,CB),
+ 3:()=>pc(13,14,10,CB)+pc(30,40,10,CR)+pc(47,66,10,CG),
+ 4:()=>pc(16,21,11.5,CB)+pc(44,21,11.5,CG)+pc(16,59,11.5,CG)+pc(44,59,11.5,CB),
+ 5:()=>pc(14,15,10.5,CB)+pc(46,15,10.5,CG)+pc(30,40,10.5,CR)+pc(14,65,10.5,CG)+pc(46,65,10.5,CB),
+ 6:()=>pc(16,13,9.5,CG)+pc(44,13,9.5,CG)+pc(16,44,9.5,CR)+pc(44,44,9.5,CR)+pc(16,67,9.5,CR)+pc(44,67,9.5,CR),
+ 7:()=>pc(11,10,8.2,CG)+pc(30,18,8.2,CG)+pc(49,26,8.2,CG)+pc(17,48,8.6,CR)+pc(43,48,8.6,CR)+pc(17,68,8.6,CR)+pc(43,68,8.6,CR),
+ 8:()=>[11,30,49,68].map(y=>pc(17,y,9,CB)+pc(43,y,9,CB)).join(''),
+ 9:()=>[[14,CB],[40,CR],[66,CG]].map(([y,c])=>pc(11,y,8.6,c)+pc(30,y,8.6,c)+pc(49,y,8.6,c)).join('')
+};
+const SOU={
+ 1:()=>`<path d="M14 62 Q8 40 22 30" stroke="${CG}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M18 66 Q20 46 30 38" stroke="${CB}" stroke-width="3" fill="none" stroke-linecap="round"/>`+
+   `<path d="M24 68 Q32 52 36 42" stroke="${CG}" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="13" cy="63" r="3.2" fill="${CR}"/><circle cx="18" cy="67" r="3.2" fill="${CB}"/><circle cx="24" cy="69" r="3.2" fill="${CR}"/>`+
+   `<ellipse cx="34" cy="36" rx="13" ry="10" fill="${CG}"/><circle cx="43" cy="22" r="7.5" fill="${CG}"/><path d="M42 15 l-2 -6 l4 4 l2 -6 l1 7" fill="${CR}"/>`+
+   `<path d="M50 21 l7 2 l-7 2z" fill="#e0a020"/><circle cx="45" cy="21" r="1.6" fill="#fff"/><circle cx="45.3" cy="21" r=".8" fill="#111"/>`+
+   `<path d="M28 36 q6 6 12 0" stroke="#fff" stroke-width="1.4" fill="none" opacity=".7"/><path d="M32 46 l-2 8 M37 46 l1 8" stroke="${CR}" stroke-width="2" stroke-linecap="round"/>`,
+ 2:()=>st(30,21,30,CG)+st(30,59,30,CB),
+ 3:()=>st(30,21,30,CG)+st(17,59,30,CB)+st(43,59,30,CB),
+ 4:()=>st(17,21,30,CG)+st(43,21,30,CB)+st(17,59,30,CB)+st(43,59,30,CG),
+ 5:()=>st(13,21,30,CG)+st(47,21,30,CB)+st(30,40,30,CR)+st(13,59,30,CB)+st(47,59,30,CG),
+ 6:()=>[12,30,48].map(x=>st(x,21,30,CG)+st(x,59,30,CB)).join(''),
+ 7:()=>st(30,12,20,CR)+[12,30,48].map(x=>st(x,40,20,CG)+st(x,67,20,CB)).join(''),
+ 8:()=>st(12,21,30,CG,14)+st(24,21,30,CG,-14)+st(36,21,30,CB,14)+st(48,21,30,CB,-14)+st(12,59,30,CB,-14)+st(24,59,30,CB,14)+st(36,59,30,CG,-14)+st(48,59,30,CG,14),
+ 9:()=>[13,40,67].map(y=>st(12,y,22,CG)+st(30,y,22,CR)+st(48,y,22,CB)).join('')
+};
+const FACE={};
+function faceSvg(s,n){const k=s+''+n;if(!FACE[k])FACE[k]='<svg viewBox="0 0 60 80" aria-hidden="true">'+(s===1?PIN:SOU)[n]()+'</svg>';return FACE[k];}
 function tileEl(t,cls=''){
   const d=document.createElement('div');
   if(isHonor(t)){
     const k=t-27; let c='h'; if(k===4)c+=' w'; if(k===5)c+=' g'; if(k===6)c+=' r';
-    d.className='tile '+c+' '+cls; d.innerHTML='<span class="n">'+(k===4?'':HON[k])+'</span>';
+    d.className='tile '+c+' '+cls; d.innerHTML='<div class="face">'+(k===4?'':'<span class="n">'+HON[k]+'</span>')+'</div>';
   }else{
     const s=suitOf(t), n=numOf(t);
     d.className='tile '+['m','p','s'][s]+' '+cls;
-    d.innerHTML='<span class="n">'+(s===0?KAN[n-1]:n)+'</span><span class="s">'+SUITNAME[s]+'</span>';
+    d.innerHTML=s===0?'<div class="face"><span class="n">'+KAN[n-1]+'</span><span class="s">萬</span></div>':'<div class="face">'+faceSvg(s,n)+'</div>';
   }
-  d.dataset.t=t; return d;
+  d.title=tileName(t); d.dataset.t=t; return d;
 }
 function toList(c){const a=[];for(let i=0;i<34;i++)for(let k=0;k<c[i];k++)a.push(i);return a;}
 
@@ -481,7 +519,7 @@ function newOshi(){
   const q=h('div','q',turn+'巡目、'+seat+'からリーチ！ <small>押す？ 降りる？</small>');main.appendChild(q);
   const box=h('div','oppbox');
   const lab=h('div','opplabel','<b>'+seat+' リーチ</b><br>'+(oppDealer?'親':'子')+'のリーチ<br>あなたの手：<b style="color:var(--gold)">'+myVal.toLocaleString()+'点</b><br><span class="note">（ドラ込みの想定）</span>');
-  const rv=h('div','river');river.forEach((t,i)=>rv.appendChild(tileEl(t,i===riichiAt?'sideways':'')));
+  const rv=h('div','river');let row;river.forEach((t,i)=>{if(i%6===0){row=h('div','rrow');rv.appendChild(row);}row.appendChild(tileEl(t,i===riichiAt?'sideways':''));});
   box.append(rv,lab);main.appendChild(box);
   const list=toList(c);const mi=list.indexOf(push.t);
   main.appendChild(handEl(list,{mark:mi}));
