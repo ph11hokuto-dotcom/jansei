@@ -37,8 +37,8 @@ header .rank b{color:var(--gold);font-size:15px}
 .btn.red{background:#e2574c;color:#fff}
 .btn.blue{background:#5b8fd9;color:#fff}
 .btn:disabled{opacity:.45;cursor:default}
-nav{display:flex;gap:6px;margin:8px 0 6px}
-nav button{flex:1;padding:8px 2px;border-radius:10px;border:0;font-size:14px;font-weight:700;cursor:pointer;
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0 6px}
+nav button{padding:7px 2px;border-radius:10px;border:0;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap;
   background:rgba(0,0,0,.2);color:var(--sub);font-family:inherit}
 nav button.on{background:var(--ink);color:#1b3d30}
 #sub{display:flex;gap:6px;align-items:center;min-height:30px;font-size:13px;color:var(--sub);flex-wrap:wrap}
@@ -113,20 +113,42 @@ tr.best td{color:var(--ok);font-weight:700}
 #toast.on{opacity:1}
 .prog{height:8px;background:rgba(255,255,255,.15);border-radius:8px;overflow:hidden;margin:4px 0}
 .prog i{display:block;height:100%;background:var(--gold)}
-@media (max-width:420px){header h1{font-size:16px} nav button{font-size:13px}}
+.sit{font-size:12.5px;line-height:1.5;background:var(--panel);border-radius:10px;padding:6px 10px}
+.sit b{color:var(--gold)}
+.choices{display:flex;flex-direction:column;gap:6px}
+.choices .btn{width:100%;text-align:left;font-size:14px;padding:9px 12px;background:rgba(255,255,255,.92)}
+.choices .btn:disabled{opacity:.55}
+.choices .btn.right,.choices .btn.wrong{opacity:1}
+.choices .btn.right{background:var(--ok);color:#0b3a1c}
+.choices .btn.wrong{background:var(--ng);color:#4a0d08}
+.melds{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.melds .grp{background:rgba(0,0,0,.18)}
+.callin{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px}
+.scores{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:12.5px}
+.scores div{background:var(--panel);border-radius:8px;padding:4px 2px;line-height:1.35}
+.scores .me{outline:2px solid var(--gold)}
+.scores b{font-size:15px;color:var(--ink)}
+.small-river{display:flex;flex-wrap:wrap;gap:1px;justify-content:center}
+.small-river .tile{--tw:min(calc((100vw - 60px) / 18), 22px)}
+.stat .card .kv{font-size:12.5px}
+@media (max-width:420px){header h1{font-size:16px} nav button{font-size:12.5px}}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
     <h1><img src="icon.svg" alt="" width="26" height="26" style="border-radius:7px;vertical-align:-6px;margin-right:6px">雀聖への道</h1>
-    <button class="btn small ghost" id="saveBtn">セーブ</button><span style="font-size:10px;color:var(--sub)">v5</span>
+    <button class="btn small ghost" id="saveBtn">セーブ</button><span style="font-size:10px;color:var(--sub)">v6</span>
     <div class="rank" id="rank"></div>
   </header>
   <nav>
     <button data-m="wait">待ち当て</button>
     <button data-m="nani">何切る</button>
     <button data-m="oshi">押し引き</button>
+    <button data-m="anzen">安全牌</button>
+    <button data-m="hantei">判断</button>
+    <button data-m="oras">オーラス</button>
+    <button data-m="chishiki">知識</button>
     <button data-m="rec">記録</button>
   </nav>
   <div id="sub"></div>
@@ -285,9 +307,11 @@ function addRandom(c,honorP){
 
 /* ===== 保存 ===== */
 const KEY='jansei-dojo-v1';
-const blank=()=>({wait:{n:0,ok:0,streak:0,best:0},nani:{n:0,ok:0,streak:0,best:0},oshi:{n:0,ok:0,streak:0,best:0},opt:{wsub:'normal',timer:true}});
+const MODES=[['wait','待ち当て'],['nani','何切る'],['oshi','押し引き'],['anzen','安全牌'],['hantei','判断'],['oras','オーラス'],['chishiki','知識']];
+const rec0=()=>({n:0,ok:0,streak:0,best:0});
+const blank=()=>{const o={opt:{wsub:'normal',timer:true,hsub:'riichi'}};MODES.forEach(([k])=>o[k]=rec0());return o;};
 let S=blank();
-try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.wait)S=Object.assign(blank(),v);}catch(e){}
+try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.wait){const b=blank();S=Object.assign(b,v);S.opt=Object.assign(b.opt,v.opt||{});}}catch(e){}
 function save(show){try{localStorage.setItem(KEY,JSON.stringify(S));if(show)toast('セーブしました');}catch(e){if(show)toast('この画面では保存できませんでした');}}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),1600);}
 document.getElementById('saveBtn').onclick=()=>save(true);
@@ -295,7 +319,7 @@ document.getElementById('saveBtn').onclick=()=>save(true);
 /* ===== 段位 ===== */
 const RANKS=[[0,'10級'],[5,'9級'],[10,'8級'],[15,'7級'],[20,'6級'],[25,'5級'],[30,'4級'],[35,'3級'],[40,'2級'],[45,'1級'],
   [55,'初段'],[70,'二段'],[90,'三段'],[115,'四段'],[145,'五段'],[180,'六段'],[220,'七段'],[270,'八段'],[330,'九段'],[400,'雀聖']];
-function totalOk(){return S.wait.ok+S.nani.ok+S.oshi.ok;}
+function totalOk(){return MODES.reduce((a,[k])=>a+S[k].ok,0);}
 function rankInfo(){const n=totalOk();let i=0;for(let k=0;k<RANKS.length;k++)if(n>=RANKS[k][0])i=k;
   const next=RANKS[i+1];return {name:RANKS[i][1],next:next?next[0]-n:0,nextName:next?next[1]:null,i,n};}
 function renderRank(){const R=rankInfo();document.getElementById('rank').innerHTML='段位 <b>'+R.name+'</b><br>'+(R.nextName?'あと'+R.next+'問で'+R.nextName:'頂点に到達');}
@@ -316,7 +340,7 @@ const main=document.getElementById('main'), sub=document.getElementById('sub');
 let mode='wait', Q=null, timerH=null;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
 function setMode(m){mode=m;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));stopTimer();
-  if(m==='wait')newWait();else if(m==='nani')newNani();else if(m==='oshi')newOshi();else renderRec();}
+  ({wait:newWait,nani:newNani,oshi:newOshi,anzen:newAnzen,hantei:newHantei,oras:newOras,chishiki:newChishiki,rec:renderRec})[m]();}
 function h(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
 function handEl(list,opts={}){
   const d=h('div','hand');list.forEach((t,i)=>{const e=tileEl(t,opts.cls||'');if(opts.mark===i)e.classList.add('mark');
@@ -459,105 +483,485 @@ function answerNani(t){
   renderStreak('nani');
 }
 
-/* ---------- 押し引き ---------- */
+/* ---------- 共通（牌の文字列・危険度・点数） ---------- */
 const SEATS=['下家','対面','上家'];
-function dangerOf(t,riverSet,visible){
-  if(riverSet.has(t))return {p:0,label:'現物'};
-  if(isHonor(t)){const v=visible[t];
-    if(v>=3)return {p:0.01,label:'字牌（3枚見え）'};
-    if(v===2)return {p:0.02,label:'字牌（2枚見え）'};
-    if(v===1)return {p:0.04,label:'字牌（1枚見え）'};
-    return {p:0.07,label:'字牌（生牌）'};}
-  const n=numOf(t),base=suitOf(t)*9;
-  const has=k=>k>=1&&k<=9&&riverSet.has(base+k-1);
-  const lo=has(n-3),hi=has(n+3);
-  if(n===1||n===9){const s=n===1?hi:lo;return s?{p:0.03,label:'スジの'+n}:{p:0.06,label:'無スジの'+n};}
-  if(n===2||n===8){const s=n===2?hi:lo;return s?{p:0.04,label:'スジの'+n}:{p:0.08,label:'無スジの'+n};}
-  if(n===3||n===7){const s=n===3?hi:lo;return s?{p:0.05,label:'スジの'+n}:{p:0.10,label:'無スジの'+n};}
-  if(lo&&hi)return {p:0.04,label:'両スジの'+n};
-  if(lo||hi)return {p:0.08,label:'片スジの'+n};
-  return {p:0.13,label:'無スジの'+n};
-}
-function newOshi(){
-  let c,ev,river,riverSet,push,dan,target,visible,seen,turn,riichiAt;
-  for(let a=0;a<80;a++){
-    const x=Math.random();target=x<0.5?0:x<0.85?1:2;
-    c=genNani(target);if(!c)continue;
-    // 山の残りから相手の河を作る（序盤は字牌・端牌が多め）
-    const pool=zeros();for(let i=0;i<34;i++)pool[i]=4-c[i];
-    const len=6+r(8);river=[];
-    for(let k=0;k<len;k++){let t;
-      for(let z=0;z<40;z++){t=r(34);if(!pool[t])continue;
-        const edge=isHonor(t)||numOf(t)===1||numOf(t)===9;
-        if(k<4&&!edge&&Math.random()<0.6)continue;break;}
-      if(pool[t]){pool[t]--;river.push(t);}}
-    riverSet=new Set(river);
-    seen=zeros();river.forEach(t=>seen[t]++);
-    ev=evalDiscards(c,seen);push=ev[0];
-    dan=dangerOf(push.t,riverSet,(()=>{const v=seen.slice();for(let i=0;i<34;i++)v[i]+=c[i]-(i===push.t?1:0);return v;})());
-    if(dan.p===0)continue;
-    if(target===0&&push.total===0)continue;
-    turn=river.length+1;riichiAt=Math.max(4,river.length-r(4))-1;break;
+function P(str){ // "123m456p11z" → 牌の配列（z: 1東2南3西4北5白6發7中）
+  const out=[];let buf=[];
+  for(const ch of str.replace(/\s/g,'')){
+    if(/[0-9]/.test(ch))buf.push(+ch);
+    else{const s='mpsz'.indexOf(ch);buf.forEach(n=>out.push(s===3?27+n-1:s*9+n-1));buf=[];}
   }
-  const oppDealer=Math.random()<0.25;
-  const myVal=pick(target===2?[1000,2000,3900,8000,12000]:[1000,1300,2000,2600,3900,5200,7700,8000,12000]);
-  const oppVal=oppDealer?8000:5500;
-  const seat=pick(SEATS);
-  // 和了率の目安
-  const tf=Math.min(1,Math.max(0.2,(18-turn)/10));
-  let base,shape;
-  if(push.s===0){if(push.total>=6){base=0.45;shape='テンパイ（良形・残り'+push.total+'枚）';}else if(push.total>=3){base=0.32;shape='テンパイ（愚形・残り'+push.total+'枚）';}else{base=0.18;shape='テンパイ（残り'+push.total+'枚）';}}
-  else if(push.s===1){base=push.total>=20?0.20:0.14;shape='1シャンテン（受け入れ'+push.total+'枚）';}
-  else{base=0.05;shape='2シャンテン';}
-  const win=base*tf;
-  const k=push.s===0?2:push.s===1?4:6;
-  const deal=1-(1-dan.p)*Math.pow(1-0.07,k-1);
-  const evPush=win*myVal-deal*oppVal;
-  Q={c,ev,push,dan,river,riichiAt,turn,myVal,oppVal,oppDealer,seat,win,deal,evPush,shape,k,done:false};
+  return out;
+}
+function cnt(list){const c=zeros();list.forEach(t=>c[t]++);return c;}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=r(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+const doraOf=ind=>isHonor(ind)?(ind<=30?(ind===30?27:ind+1):(ind===33?31:ind+1)):(numOf(ind)===9?ind-8:ind+1);
+function pct(x,d=1){return (x*100).toFixed(d)+'%';}
+/* リーチ者に対する危険度の目安
+   基本の数値は riichi.wiki の放銃率の表（平均）。
+   壁・ワンチャンス・宣言牌のスジ・序盤に切られた牌の外側は、解説動画の考え方で補正した目安。
+   vis: 見えている枚数（全員の捨て牌・ドラ表示牌・自分の手牌をすべて含む） */
+function dangerR(t,river,decl,vis){
+  if(river.includes(t))return {p:0,label:'現物',cat:0};
+  if(isHonor(t)){const v=vis[t]-1;
+    if(v>=3)return {p:0.001,label:'字牌（4枚目）',cat:1};
+    if(v===2)return {p:0.003,label:'字牌（3枚目）',cat:2};
+    if(v===1)return {p:0.022,label:'字牌（2枚目）',cat:3};
+    return {p:0.049,label:'字牌（生牌）',cat:4};}
+  const s=suitOf(t),n=numOf(t),T=k=>s*9+k-1;
+  const ok=k=>k>=1&&k<=9;
+  const inR=k=>ok(k)&&river.includes(T(k));
+  function side(d){ // d=-1: (n-2,n-1)の両面, d=+1: (n+1,n+2)の両面
+    const sj=n+3*d;
+    if(inR(sj)){const onlyDecl=river.indexOf(T(sj))===decl&&river.filter(x=>x===T(sj)).length===1;return {safe:1,why:onlyDecl?'decl':'suji'};}
+    const a=vis[T(n+d)],b=vis[T(n+2*d)];
+    if(a>=4||b>=4)return {safe:1,why:'kabe'};
+    if(a===3||b===3)return {safe:0.5,why:'one'};
+    return {safe:0,why:'none'};
+  }
+  const sides=[-1,1].filter(d=>ok(n+3*d)).map(side);
+  const W={suji:'スジ',decl:'宣言牌のスジ',kabe:'壁',one:'ワンチャンス',none:'無スジ'};
+  let p,label,cat;
+  if(sides.length===1){
+    const tb=(n===1||n===9)?[0.080,0.019]:(n===2||n===8)?[0.092,0.040]:[0.101,0.056];
+    const x=sides[0];p=tb[0]+(tb[1]-tb[0])*x.safe;label=W[x.why]+'の'+n;
+    if(x.why==='decl'){p=(n===3||n===7)?0.084:p*1.6;}
+    cat=x.safe===1?5:x.safe?6:7;
+  }else{
+    const sf=sides.reduce((a,x)=>a+x.safe,0);
+    p=0.139-(0.139-0.081)*Math.min(sf,1)-(0.081-0.024)*Math.max(0,sf-1);
+    if(sides.some(x=>x.why==='decl'))p*=1.4;
+    label=sf>=2?(sides.every(x=>x.why==='suji')?'両スジの'+n:'両側とも通る'+n+'（'+sides.map(x=>W[x.why]).join('・')+'）'):
+      sf>=1?'片側だけ通る'+n+'（'+sides.map(x=>W[x.why]).join('・')+'）':sf>0?'ワンチャンスの'+n:'無スジの'+n;
+    if(sf===1&&sides.some(x=>x.why==='suji')&&sides.some(x=>x.why==='none'))label='片スジの'+n;
+    cat=sf>=2?5:sf>=1?6:7;
+  }
+  // 序盤（5巡目まで）に切られた牌の外側の1・2・8・9は通りやすい
+  const outer=n<=2?[n+1,3]:n>=8?[n-1,7]:[];
+  const early=outer.filter(k=>ok(k)&&k!==n&&river.slice(0,5).includes(T(k)));
+  if(p>0.03&&early.length){p*=0.6;label+='（序盤に'+early[0]+'が切られた外側）';}
+  return {p,label,cat};
+}
+function genRiver(pool,len){ // 山（pool）から河を作る。序盤は字牌・端牌が多め
+  const river=[];
+  for(let k=0;k<len;k++){let t=-1;
+    for(let z=0;z<80;z++){const x=r(34);if(!pool[x])continue;
+      const edge=isHonor(x)||numOf(x)===1||numOf(x)===9;const mid=!isHonor(x)&&numOf(x)>=3&&numOf(x)<=7;
+      if(k<4&&!edge&&Math.random()<0.7)continue;
+      if(k>=4&&k<8&&mid&&Math.random()<0.35)continue;
+      t=x;break;}
+    if(t>=0){pool[t]--;river.push(t);}}
+  return river;
+}
+function riverEl(list,decl,cls){const rv=h('div','river');let row;list.forEach((t,i)=>{if(i%6===0){row=h('div','rrow');rv.appendChild(row);}row.appendChild(tileEl(t,(i===decl?'sideways ':'')+(cls||'')));});return rv;}
+function genScores(){for(let a=0;a<200;a++){const x=[0,0,0,0].map(()=>Math.round((25000+(Math.random()-0.5)*34000)/100)*100);
+  x[0]+=100000-x.reduce((p,q)=>p+q,0);if(x.every(v=>v>=2000&&v<=58000))return x;}return [25000,25000,25000,25000];}
+const NAMES=['自分','下家','対面','上家'];
+function scoresEl(sc,dealer,mark){const d=h('div','scores');
+  sc.forEach((v,i)=>{const e=h('div',i===0?'me':'',NAMES[i]+(i===dealer?'（親）':'')+'<br><b>'+v.toLocaleString()+'</b>');if(mark&&mark.includes(i))e.style.outline='2px solid #ffb3a7';d.appendChild(e);});return d;}
+
+/* ---------- 押し引き（上級版） ---------- */
+const KYOKU=['東1','東2','東3','東4','南1','南2','南3'];
+function newOshi(){
+  let G=null;
+  for(let a=0;a<400&&!G;a++){
+    const x=Math.random();const target=x<0.4?0:x<0.8?1:2;
+    const c=genNani(target);if(!c)continue;
+    const pool=zeros();for(let i=0;i<34;i++)pool[i]=4-c[i];
+    const ind=r(34);if(!pool[ind])continue;pool[ind]--;const dora=doraOf(ind);
+    const furo=Math.random()<0.4;
+    const seatI=1+r(3);
+    // 鳴いている相手の副露
+    const melds=[];let calls=0;
+    if(furo){calls=1+(Math.random()<0.5?1:0)+(Math.random()<0.25?1:0);
+      for(let k=0;k<calls;k++){let m=null;
+        for(let z=0;z<60&&!m;z++){
+          if(Math.random()<0.4){const t=31+r(3);if(pool[t]>=3){pool[t]-=3;m=[t,t,t];}}
+          else{const s=r(3),b=s*9+1+r(5);if(pool[b]&&pool[b+1]&&pool[b+2]){pool[b]--;pool[b+1]--;pool[b+2]--;m=[b,b+1,b+2];}}}
+        if(m)melds.push(m);}
+      calls=melds.length;if(!calls)continue;}
+    const len=6+r(9);const river=genRiver(pool,len);
+    const others=[genRiver(pool,len-1),genRiver(pool,len-1)];
+    const vis=zeros();[...river,...others[0],...others[1],ind,...toList(c)].forEach(t=>vis[t]++);melds.flat().forEach(t=>vis[t]++);
+    const seen=vis.slice();toList(c).forEach(t=>seen[t]--);
+    const ev=evalDiscards(c,seen);const push=ev[0];
+    if(push.s===0&&push.total===0)continue;
+    const decl=furo?-1:len-1;
+    const dan=dangerR(push.t,river,decl,vis);
+    if(dan.p===0)continue;
+    const turn=len+1;
+    const kyoku=pick(KYOKU),south=kyoku[0]==='南';
+    const sc=genScores();
+    const oppDealer=Math.random()<0.3;
+    const dealer=oppDealer?seatI:pick([1,2,3].filter(i=>i!==seatI));
+    const rank=1+sc.slice(1).filter(v=>v>sc[0]).length;
+    const sorted=sc.slice().sort((p,q)=>q-p);
+    // 和了率の目安（形と巡目）
+    const tf=Math.min(1,Math.max(0.2,(18-turn)/10));
+    let base,shape;
+    if(push.s===0){if(push.total>=6){base=0.45;shape='テンパイ（良形・残り'+push.total+'枚）';}else if(push.total>=3){base=0.30;shape='テンパイ（愚形・残り'+push.total+'枚）';}else{base=0.16;shape='テンパイ（残り'+push.total+'枚）';}}
+    else if(push.s===1){base=push.total>=20?0.20:0.13;shape='1シャンテン（受け入れ'+push.total+'枚）';}
+    else{base=0.05;shape='2シャンテン';}
+    const win=base*tf;
+    const myVal=pick(push.s>=2?[1000,2000,3900,8000,12000]:[1000,1300,2000,2600,3900,5200,7700,8000,12000]);
+    // 相手のテンパイ率と打点
+    const tp=furo?Math.min(0.95,[0,0.22,0.45,0.75][calls]+0.03*Math.max(0,turn-6)):1;
+    const dragons=melds.filter(m=>m[0]>=31&&m[0]===m[1]).length;
+    let oppVal=furo?(dragons>=2?8000:3800):6000;if(oppDealer)oppVal=Math.round(oppVal*1.5);
+    const k=push.s===0?2:push.s===1?4:7;
+    const pNow=dan.p*tp;
+    const deal=1-(1-pNow)*Math.pow(1-0.065*tp,k-1);
+    // 点数状況の補正
+    let gainM=1,lossM=1,place='';
+    if(south&&rank===1&&sc[0]-sorted[1]>=8000){gainM=0.8;lossM=1.5;place='南場のトップ目で大きくリード → 放銃で順位を落とすのが痛いので守り寄り';}
+    else if(south&&rank===4){gainM=1.25;lossM=0.9;place='南場のラス目 → 和了の価値が大きいので攻め寄り';}
+    else if(south&&rank===3&&sc[0]-sorted[3]<=4000){lossM=1.3;place='ラス目と僅差の3着 → 放銃でラス落ちしやすいので守り寄り';}
+    const bonus=push.s===0?300:0;
+    const evPush=win*myVal*gainM+bonus-deal*oppVal*lossM;
+    if(Math.abs(evPush)>2500&&Math.random()<0.8)continue; // 判断がはっきりしすぎる場面は減らす
+    G={c,ev,push,dan,river,decl,others,melds,calls,furo,seatI,ind,dora,turn,kyoku,south,sc,dealer,oppDealer,rank,win,myVal,tp,oppVal,k,deal,gainM,lossM,place,evPush,shape,done:false};
+  }
+  if(!G){toast('問題を作れませんでした。もう一度押してください');return;}
+  Q=G;
   subBar([],streakText('oshi'));
   main.innerHTML='';
-  const q=h('div','q',turn+'巡目、'+seat+'からリーチ！ <small>押す？ 降りる？</small>');main.appendChild(q);
+  const who=NAMES[Q.seatI];
+  main.appendChild(h('div','q',Q.kyoku+'局 '+Q.turn+'巡目　'+(Q.furo?who+'が'+Q.calls+'副露':who+'からリーチ！')+' <small>押す？ 降りる？</small>'));
+  main.appendChild(scoresEl(Q.sc,Q.dealer,[Q.seatI]));
   const box=h('div','oppbox');
-  const lab=h('div','opplabel','<b>'+seat+' リーチ</b><br>'+(oppDealer?'親':'子')+'のリーチ<br>あなたの手：<b style="color:var(--gold)">'+myVal.toLocaleString()+'点</b><br><span class="note">（ドラ込みの想定）</span>');
-  const rv=h('div','river');let row;river.forEach((t,i)=>{if(i%6===0){row=h('div','rrow');rv.appendChild(row);}row.appendChild(tileEl(t,i===riichiAt?'sideways':''));});
-  box.append(rv,lab);main.appendChild(box);
-  const list=toList(c);const mi=list.indexOf(push.t);
-  main.appendChild(handEl(list,{mark:mi}));
-  main.appendChild(h('div','note','<div style="text-align:center">黄色の枠＝手を進めるなら切りたい牌（'+tileName(push.t)+'）。押すならこれを切り、降りるなら安全な牌を切ります。</div>'));
+  const lab=h('div','opplabel','<b>'+who+(Q.furo?' '+Q.calls+'副露':' リーチ')+'</b><br>'+(Q.oppDealer?'親':'子')+'の'+(Q.furo?'仕掛け':'リーチ')+'<br>あなたの手：<b style="color:var(--gold)">'+Q.myVal.toLocaleString()+'点</b><br><span class="note">ドラ </span>');
+  lab.querySelector('.note').appendChild(tileEl(Q.dora,'mini'));
+  if(Q.furo){const ms=h('div','melds');Q.melds.forEach(m=>{const g=h('div','grp');m.forEach(t=>g.appendChild(tileEl(t,'mini')));ms.appendChild(g);});lab.appendChild(ms);}
+  box.append(riverEl(Q.river,Q.decl),lab);main.appendChild(box);
+  const list=toList(Q.c);main.appendChild(handEl(list,{mark:list.indexOf(Q.push.t)}));
+  main.appendChild(h('div','note','<div style="text-align:center">黄色の枠＝手を進めるなら切る牌（'+tileName(Q.push.t)+'）。押すならこれを切り、降りるなら安全な牌を切ります。</div>'));
   const act=h('div','actions');
-  const b1=h('button','btn red','押す（'+tileName(push.t)+'を切る）');b1.onclick=()=>answerOshi(true);
+  const b1=h('button','btn red','押す（'+tileName(Q.push.t)+'）');b1.onclick=()=>answerOshi(true);
   const b2=h('button','btn blue','降りる');b2.onclick=()=>answerOshi(false);
   const b3=h('button','btn ghost','次の場面');b3.onclick=newOshi;act.append(b1,b2,b3);main.appendChild(act);Q.bs=[b1,b2];
   const res=h('div','result');main.appendChild(res);Q.res=res;
 }
 function answerOshi(push){
   if(Q.done)return;Q.done=true;Q.bs.forEach(b=>b.disabled=true);
-  const ev=Q.evPush;const close=Math.abs(ev)<250;const right=ev>0;
+  const ev=Q.evPush;const close=Math.abs(ev)<300;const right=ev>0;
   const ok=close||push===right;
   record('oshi',ok);
   const R=Q.res;R.innerHTML='';
   R.appendChild(h('div','verdict '+(close?'mid':ok?'ok':'ng'),close?'どちらもアリ！（きわどい場面）':ok?'正解！':'不正解'));
   R.appendChild(h('div','jikkyo',pick(push?J_PUSH:J_FOLD)+' '+pick(ok?J_OK:J_NG)));
-  const pct=x=>(x*100).toFixed(0)+'%';
   const kv=h('div','kv');
-  kv.innerHTML='<span>おすすめ</span><span><b>'+(close?'どちらでも':right?'押す':'降りる')+'</b></span>'+
-    '<span>あなたの手</span><span>'+Q.shape+'、'+Q.myVal.toLocaleString()+'点</span>'+
-    '<span>'+tileName(Q.push.t)+'の危険度</span><span>'+Q.dan.label+' → 放銃率 約'+pct(Q.dan.p)+'</span>'+
-    '<span>和了率の目安</span><span>約'+pct(Q.win)+'（'+Q.turn+'巡目）</span>'+
-    '<span>放銃率の目安</span><span>約'+pct(Q.deal)+'（あと'+Q.k+'枚ほど危険牌を切る想定）</span>'+
-    '<span>相手の打点</span><span>'+Q.oppVal.toLocaleString()+'点（'+(Q.oppDealer?'親':'子')+'リーチの平均くらい）</span>'+
-    '<span>押したときの損得</span><span><b>'+(ev>=0?'+':'')+Math.round(ev).toLocaleString()+'点</b>（和了率×自分の打点 − 放銃率×相手の打点）</span>';
+  kv.innerHTML='<span>おすすめ</span><span><b>'+(close?'どちらでも':right?'押す':'降りる')+'</b>（押したときの損得 <b>'+(ev>=0?'+':'')+Math.round(ev).toLocaleString()+'点</b>）</span>'+
+    '<span>あなたの手</span><span>'+Q.shape+'、'+Q.myVal.toLocaleString()+'点 → 和了率 約'+pct(Q.win,0)+'</span>'+
+    '<span>'+tileName(Q.push.t)+'の危険度</span><span>'+Q.dan.label+'：放銃率 約'+pct(Q.dan.p)+(Q.furo?' × 相手のテンパイ率 約'+pct(Q.tp,0):'')+'</span>'+
+    '<span>放銃率（合計）</span><span>約'+pct(Q.deal,0)+'（このあと危険牌をあと'+(Q.k-1)+'枚ほど切る想定）</span>'+
+    '<span>相手の打点</span><span>'+Q.oppVal.toLocaleString()+'点くらい（'+(Q.oppDealer?'親':'子')+'の'+(Q.furo?'仕掛け':'リーチ')+'）</span>'+
+    (Q.place?'<span>点数状況</span><span>'+Q.place+'</span>':'');
   R.appendChild(kv);
-  const pts=[];
-  if(Q.push.s>=2)pts.push('2シャンテンからの押しは、満貫以上でもかなり厳しいのが基本です。');
-  if(Q.push.s===0&&Q.push.total>=6)pts.push('良形テンパイは、多少安くても押しが基本です。');
-  if(Q.push.s===0&&Q.push.total<3)pts.push('待ちの残りが少ないテンパイは、和了率が下がるぶん打点が必要です。');
-  if(Q.dan.p>=0.1)pts.push('無スジの真ん中の牌は、とくに危険です。');
-  if(Q.dan.p<=0.03)pts.push('切りたい牌が比較的安全なので、押しやすい場面です。');
+  const pts=[];const s=Q.push.s;
+  if(Q.furo){
+    const rule222=s>=2&&((Q.calls>=3&&Q.turn>=5)||(Q.calls===2&&Q.turn>=9)||(Q.calls===1&&Q.turn>=13));
+    if(rule222)pts.push('<b>222の法則</b>に当てはまります（相手'+Q.calls+'副露・捨て牌'+(Q.turn>=13?'3':Q.turn>=7?'2':'1')+'段目・自分2シャンテン以上）。無筋は切らずに降りるのが基本です。');
+    else if(!Q.oppDealer&&s<=1)pts.push('子の普通の仕掛けには絞りすぎず、自分の手を進めてよい場面が多いです。');
+    if(Q.calls>=3)pts.push('3副露は手牌が4枚。テンパイしている可能性が高いと考えます。');
+  }else{
+    if(s>=2)pts.push('リーチに対して2シャンテン以上は、テンパイまでに無筋を何枚も切ることになるので、ベタオリが基本です。');
+    if(Q.oppDealer)pts.push('親リーチは放銃したときの失点が子の1.5倍です。');
+  }
+  if(s===0&&Q.push.total>=6)pts.push('良形テンパイは、和了率が放銃率を大きく上回るので押しが基本です。');
+  if(s===0&&Q.push.total<3)pts.push('待ちの残りが少ないテンパイは和了率が低いので、打点が必要です。');
+  if(s===1){const f=[Q.myVal>=7700?'打点○':'打点×',Q.push.total>=20?'形○':'形×',Q.turn<=9?'巡目○':'巡目×'];
+    pts.push('1シャンテンは「打点・形・巡目」で判断（'+f.join('・')+'）。2つ以上×なら降りが基本です。');}
+  if(Q.dan.p>=0.1)pts.push('無スジの真ん中寄りの牌は特に危険です。');
   if(Q.turn>=13)pts.push('終盤は和了率が下がるので、降りが増えます。');
   if(pts.length)R.appendChild(h('div',null,'ポイント：'+pts.join(' ')));
-  R.appendChild(h('div','note','数値は一般に知られる統計の傾向をもとにした概数で、手順を簡単にした目安の判定です（他家の動き・点数状況・裏ドラなどは考えていません）。'));
+  R.appendChild(h('div','note','判定は「和了率×自分の打点 − 放銃率×相手の打点」に点数状況の補正をかけた目安です。危険度は riichi.wiki の放銃率の表、222の法則・1シャンテンの考え方は解説動画（発男道場）をもとにしています。'));
   renderStreak('oshi');
+}
+
+/* ---------- 安全牌（読み） ---------- */
+function newAnzen(){
+  let G=null;
+  for(let a=0;a<600&&!G;a++){
+    const pool=zeros().map(()=>4);
+    const ind=r(34);pool[ind]--;
+    const len=7+r(8);const river=genRiver(pool,len);const decl=len-1;
+    const others=[genRiver(pool,len-1+r(2)),genRiver(pool,len-1+r(2))];
+    const hand=[];let g=0;
+    while(hand.length<14&&g++<800){const t=Math.random()<0.12?27+r(7):r(27);if(!pool[t]||river.includes(t))continue;pool[t]--;hand.push(t);}
+    if(hand.length<14)continue;
+    hand.sort((x,y)=>x-y);
+    const vis=zeros();[...river,...others[0],...others[1],ind,...hand].forEach(t=>vis[t]++);
+    const cand=[...new Set(hand)].map(t=>({t,...dangerR(t,river,decl,vis)})).sort((x,y)=>x.p-y.p);
+    const min=cand[0].p;
+    if(min<0.002)continue;                                   // 4枚目の字牌がある＝簡単すぎる
+    if(cand.filter(x=>x.p<=min+0.025).length<3)continue;    // 候補が3つ以上ある場面だけ
+    if(new Set(cand.map(x=>x.cat)).size<4)continue;
+    if(isHonor(cand[0].t)&&Math.random()<0.75)continue;     // 字牌が正解の問題は少なめに
+    const tricky=cand.some(x=>/宣言牌|壁|ワンチャンス|序盤/.test(x.label));
+    if(!tricky&&Math.random()<0.7)continue;                  // 読みの知識が要る場面を多めに
+    G={hand,river,decl,others,ind,seat:pick(SEATS),cand,min,done:false};
+  }
+  if(!G){toast('問題を作れませんでした。もう一度押してください');return;}
+  Q=G;
+  subBar([timerChip()],streakText('anzen'));
+  main.innerHTML='';
+  const q=h('div','q',Q.river.length+'巡目、'+Q.seat+'からリーチ。<small>いちばん安全な牌を切ってください</small>');const tm=h('span','timer');q.appendChild(tm);main.appendChild(q);
+  const bar=h('div','bar');const bi=h('i');bar.appendChild(bi);main.appendChild(bar);
+  const box=h('div','oppbox');
+  const lab=h('div','opplabel','<b>'+Q.seat+' リーチ</b><br><span class="note">横向き＝宣言牌</span><br><span class="note">ドラ表示牌 </span>');
+  lab.querySelectorAll('.note')[1].appendChild(tileEl(Q.ind,'mini'));
+  box.append(riverEl(Q.river,Q.decl),lab);main.appendChild(box);
+  const ot=h('div','sit');ot.innerHTML='<span class="note">ほかの2人の捨て牌（リーチ前・壁やワンチャンスを数えるのに使う）</span>';
+  const sr=h('div','small-river');[...Q.others[0],...Q.others[1]].sort((x,y)=>x-y).forEach(t=>sr.appendChild(tileEl(t)));ot.appendChild(sr);main.appendChild(ot);
+  const hd=handEl(Q.hand,{onClick:(t,i,e)=>{if(Q.done)return;if(Q.selEl===e){answerAnzen(t);return;}
+    if(Q.selEl)Q.selEl.classList.remove('sel');Q.selEl=e;Q.sel=t;e.classList.add('sel');Q.b1.disabled=false;}});
+  main.appendChild(hd);Q.hd=hd;
+  const act=h('div','actions');const b1=h('button','btn gold','これを切る');b1.disabled=true;b1.onclick=()=>answerAnzen(Q.sel);
+  const b2=h('button','btn ghost','次の問題');b2.onclick=newAnzen;act.append(b1,b2);main.appendChild(act);Q.b1=b1;
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+  startTimer(40,bi,tm,()=>answerAnzen(null));
+}
+function answerAnzen(t){
+  if(Q.done)return;Q.done=true;stopTimer();Q.b1.disabled=true;
+  const mine=t==null?null:Q.cand.find(x=>x.t===t);
+  const ok=!!mine&&mine.p<=Q.min+0.003;
+  Q.hd.querySelectorAll('.tile').forEach(e=>{const c=Q.cand.find(x=>x.t===+e.dataset.t);if(c&&c.p<=Q.min+0.003)e.classList.add('mark');});
+  record('anzen',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':(t==null?'時間切れ':'不正解')));
+  R.appendChild(h('div','jikkyo',pick(ok?J_OK:J_NG)));
+  const tb=h('table');tb.innerHTML='<tr><th>牌</th><th>分類</th><th>放銃率の目安</th></tr>';
+  Q.cand.slice(0,7).forEach(x=>{const tr=h('tr',x.p<=Q.min+0.003?'best':'');const td=h('td');td.appendChild(tileEl(x.t,'mini'));
+    tr.append(td,h('td',null,x.label+(mine&&x.t===mine.t&&!ok?'（あなた）':'')),h('td',null,'約'+pct(x.p)));tb.appendChild(tr);});
+  R.appendChild(tb);
+  const tips=[];const L=Q.cand.map(x=>x.label).join(' ');
+  if(/宣言牌/.test(L))tips.push('宣言牌のスジの3・7は、468から4を切ってリーチ→7待ち、のような形が多く、無スジ並みに危険です（9巡目のデータで8.4%）。');
+  if(/壁/.test(L))tips.push('壁：隣の牌が4枚見えていると、その側の両面待ちはありません。');
+  if(/ワンチャンス/.test(L))tips.push('ワンチャンス：隣の牌が3枚見えていると、その側の両面は少なめ。ただし終盤は信用しすぎない。');
+  if(/序盤/.test(L))tips.push('序盤に切られた牌の外側（例：2巡目の8 → 9）は、外側のスジくらい安全なことが多いです。');
+  if(/生牌/.test(L))tips.push('生牌の字牌は、中盤以降は筋の2・8より危なくなります。');
+  if(tips.length)R.appendChild(h('div',null,'ポイント：'+tips.join(' ')));
+  R.appendChild(h('div','note','数値は riichi.wiki の放銃率の表（リーチ者への平均）を土台に、壁・ワンチャンス・宣言牌のスジ・序盤の外側を解説動画の考え方で補正した目安です。リーチ後の他家の捨て牌（見逃しの現物）は考えていません。'));
+  renderStreak('anzen');
+}
+
+/* ---------- 判断（リーチ判断・鳴き判断） ---------- */
+const HQ_R=[
+ {hand:'234m678m345p56s88p',sit:'東2局 南家　<b>7巡目</b>　先制（ほかに誰もリーチしていない）　点数はほぼ平ら　ドラ：北',
+  q:'平和のみの両面テンパイ。どうする？',ch:['リーチ','ダマ'],a:0,
+  exp:'平和のみの両面（残り8枚）は、先制なら即リーチが基本。リーチで平均打点は約3倍（ダマ約1,200点→リーチ約3,700点）になり、和了率は約0.8倍（8巡目の両面でリーチ約57%・ダマ約73%）。打点の伸びが大きく上回ります（平澤元気プロの動画）。'},
+ {hand:'123m345p567p55p67s',sit:'東1局 南家　<b>5巡目</b>　全員25,000点　ドラ：5筒',
+  q:'平和ドラ4（ダマで満貫）の両面テンパイ。どうする？',ch:['リーチ','ダマ'],a:0,
+  exp:'両面のダマ満貫は、東場なら<b>8巡目くらいまではリーチ</b>がよいとされます（跳満・倍満になる分で1局あたりの収支が上）。9巡目以降はダマ寄り（ゆうせーさんの動画）。'},
+ {hand:'123m345p567p55p67s',sit:'南2局 西家　<b>12巡目</b>　自分34,000点のトップ目（2着26,000点）　ドラ：5筒',
+  q:'平和ドラ4（ダマで満貫）の両面テンパイ。どうする？',ch:['リーチ','ダマ'],a:1,
+  exp:'9巡目以降・南場・持ち点のあるトップ目と、ダマに寄せる理由がそろっています（1つでダマを考え、2つそろえば強くダマ）。確実に8,000点を取ってトップを固めます（ゆうせーさんの動画）。'},
+ {hand:'223344m789p13p99s',sit:'東3局 北家　<b>9巡目</b>　平ら　ドラ：9索　<b>2筒は場に1枚切れ</b>',
+  q:'一盃口ドラ2、カン2筒待ち（ダマ5,200点）。どうする？',ch:['リーチ','ダマ','テンパイを外す'],a:1,
+  exp:'愚形5,200は強い人でも意見が分かれる難問ですが、<b>待ち牌がすでに1枚切れているときはダマ</b>がおすすめ。山に少なくツモりにくい一方、切った人がもう1枚つかめば出やすく、その人がリーチすれば現物待ちになります（天鳳位ヨーテルさんの動画）。'},
+ {hand:'223344m456p22p88s',sit:'東2局 西家　<b>8巡目</b>　平ら　ドラ：8索　2筒・8索は場に見えていない',
+  q:'一盃口ドラ2、2筒と8索のシャンポン待ち（ダマ5,200点、8索なら満貫）。どうする？',ch:['リーチ','ダマ'],a:0,
+  exp:'2と8のシャンポンは「良い愚形」。2・8は他の人に使いにくく出やすいので、リーチしてもそこそこ和了れます。手変わりもほとんどないので、リーチで満貫・跳満を狙います（天鳳位ヨーテルさんの動画）。'},
+ {hand:'12m456p789p234s66s',sit:'東1局 東家（親）　<b>6巡目</b>　先制　ドラ：西',
+  q:'ペン3萬待ちの役なしテンパイ。どうする？',ch:['リーチ','ダマ（ツモ和了のみ）'],a:0,
+  exp:'役がないのでダマではロンできません。先制の愚形リーチのみは、統計上リーチが得とされます。天鳳位クラスでも打たない人はいますが、初中級者がここで打って悪いことはまずありません（平澤元気プロの動画）。'},
+ {hand:'12m456p66p345s456s',draw:'5m',sit:'東1局 南家　<b>5巡目</b>　先制　ドラ：北',
+  q:'5萬を引いた。5萬を切ればペン3萬のリーチのみ。どうする？',ch:['5萬を切ってリーチ','5萬を切ってダマ','1萬を切ってテンパイを外す'],a:2,
+  exp:'1萬を切ると、4萬・6萬を引けば両面でテンパイし<b>456の三色</b>、3萬・7萬でも両面、2萬を外せば<b>タンヤオ</b>も付きます。形も打点も上がる道がたくさんあるときは、テンパイを外して育てる「3つ目の選択肢」が正解です（平澤元気プロの動画）。'},
+ {hand:'234m678m345p56s88p',sit:'東3局 南家　<b>9巡目</b>　対面（子）のリーチを受けてテンパイ。宣言牌は現物で通った',
+  q:'平和のみの両面で追いついた。どうする？',ch:['追っかけリーチ','ダマで押す','降りる'],a:0,
+  exp:'他の人のリーチの後でも、良形でテンパイしたらリーチが強いとされます（riichi.wiki）。両面テンパイは押しが基本で、押すなら打点を上げて勝負します。'},
+ {hand:'678m567p345s66s34m',sit:'<b>南4局（オーラス）</b> 西家　10巡目　自分31,000点（2着26,000点）　和了ればトップで終了',
+  q:'平和タンヤオの両面テンパイ（ダマ2,000点）。どうする？',ch:['リーチ','ダマ'],a:1,
+  exp:'和了ればトップが決まるので、リーチで打点を上げる必要がありません。ダマなら和了率が上がり、危ない牌を引いたら降りられます。点数状況で判断が変わる典型です。'},
+ {hand:'234m567p345s99p67s',sit:'<b>南4局（オーラス）</b> 自分18,000点（ラス目）、上家（子）25,100点（3着）、対面（親）26,000点、下家30,900点　ドラ：7筒',
+  q:'平和ドラ1の3面張（2-5-8索）テンパイ。3着に上がりたい。どうする？',ch:['リーチ','ダマ'],a:0,
+  exp:'ダマでは上家から直撃しても2,000点（差が4,000しか縮まない）、ツモでも700-1,300で届きません。リーチなら上家からの直撃3,900点で逆転、ツモなら裏ドラ1枚で満貫になり逆転。<b>条件を満たす形にして勝負</b>します（渋川難波プロの実戦解説の考え方）。'},
+ {hand:'234m678m456p35s77p',sit:'南2局 東家（親）　8巡目　自分37,000点のトップ目　<b>下家が索子のホンイツ気配で2副露</b>',
+  q:'タンヤオのカン4索待ち（親のダマ2,000点）。どうする？',ch:['リーチ','ダマ'],a:1,
+  exp:'南場のトップ目で、他の人が高そうな仕掛けを入れています。安い愚形でリーチして押し返されると降りられません。ダマなら和了も狙えて、危ない索子を引いたら降りられます。点数状況と相手の仕掛けで、リーチしない理由ができる場面です（平澤元気プロの「愚形リーチのみ」の回の考え方）。'}
+];
+const HQ_N=[
+ {hand:'99m345m24p57s89s66z',call:'3p',from:'上家',sit:'東1局 南家　4巡目　ドラ：南',
+  q:'上家が3筒を切った。どうする？',ch:['チー（234筒）','スルー'],a:0,
+  exp:'發は対子、雀頭は9萬で決まっているので、發を後で鳴いて役を付ける「役牌バック」で進めてよい形。嵌張・辺張などの愚形部分は積極的に鳴きます（発男道場）。'},
+ {hand:'135m79p24s79s1257z',call:'8p',from:'上家',sit:'東2局 西家　5巡目　ドラ：1萬',
+  q:'上家が8筒を切った。チーすれば789筒の面子ができる。どうする？',ch:['チー（789筒）','スルー'],a:1,
+  exp:'<b>3悪</b>（面子が0・愚形が残る・打点が決まらない）がそろっています。中は1枚しかなく役も打点も決まらないうえ、鳴くと守りも弱くなります。スルーが基本です（ゆうせーさんの動画）。'},
+ {hand:'235679m7711z3p7s4z',call:'8m',from:'上家',sit:'東2局 南家　6巡目　ドラ：白',
+  q:'上家が8萬を切った。どうする？',ch:['チー（789萬）','スルー'],a:0,
+  exp:'萬子と字牌に寄っていて、中・東の対子もあるのでホンイツ＋役牌で満貫が見えます。ホンイツは<b>手が進む牌は全部鳴く</b>のが基本です（天鳳位ヨーテルさんの動画）。'},
+ {hand:'34m57p678s456s88p4z',call:'2m',from:'上家',sit:'東1局 西家　<b>5巡目</b>　ドラ：西',
+  q:'上家が2萬を切った。チーすれば北を切ってカン6筒待ちのテンパイ（喰いタン1,000点）。どうする？',ch:['チー（234萬）','スルー'],a:1,
+  exp:'序盤に<b>両面から鳴いて愚形待ちになる</b>鳴きはスルー。両面は自分で引きやすく、門前ならリーチ・タンヤオ・平和で打点も狙えます（発男道場）。'},
+ {hand:'46p34s456m678m88s4z',call:'5p',from:'上家',sit:'東1局 西家　<b>4巡目</b>　ドラ：西',
+  q:'上家が5筒を切った。チーすれば北を切って2-5索の両面テンパイ（喰いタン1,000点）。どうする？',ch:['チー（456筒）','スルー'],a:0,
+  exp:'<b>愚形を消して両面テンパイ</b>になるなら、序盤でも鳴いてテンパイを取ります。1シャンテンからテンパイは思ったより遅く、遅れると他の人のリーチに追いつかれます（発男道場）。'},
+ {hand:'66z11p345m67s24m9s5p',call:'1p',from:'対面',sit:'東2局 北家　5巡目　ドラ：東',
+  q:'対面が1筒を切った。どうする？',ch:['ポン','スルー'],a:1,
+  exp:'雀頭は1筒の対子だけ。ポンすると雀頭がなくなり、發も対子のまま役になりません。役牌バックでも<b>ポンで雀頭が消える鳴きはしない</b>のが基本です（発男道場）。'},
+ {hand:'34m678p456s55s22p7p',call:'2m',from:'上家',sit:'東3局 南家　<b>9巡目</b>　ドラ：5索',
+  q:'上家が2萬を切った。チーすれば7筒を切って5索と2筒のシャンポン待ち（喰いタンドラ3）。どうする？',ch:['チー（234萬）','スルー'],a:0,
+  exp:'鳴いても4翻（7,700点、5索なら満貫）あるなら鳴くのが基本。中盤の1シャンテンからテンパイを取る価値が大きいです（riichi.wiki）。'}
+];
+let HBAG={riichi:[],naki:[]};
+function newHantei(){
+  const sub2=S.opt.hsub==='naki'?'naki':'riichi';
+  const bank=sub2==='naki'?HQ_N:HQ_R;
+  if(!HBAG[sub2].length)HBAG[sub2]=shuffle([...Array(bank.length).keys()]);
+  const P0=bank[HBAG[sub2].pop()];
+  Q={p:P0,done:false};
+  subBar([{label:'リーチ判断',on:sub2==='riichi',fn:()=>{S.opt.hsub='riichi';save(false);newHantei();}},
+          {label:'鳴き判断',on:sub2==='naki',fn:()=>{S.opt.hsub='naki';save(false);newHantei();}}],streakText('hantei'));
+  main.innerHTML='';
+  main.appendChild(h('div','q',P0.q));
+  main.appendChild(h('div','sit',P0.sit));
+  const list=P(P0.hand).sort((x,y)=>x-y);
+  const hd=handEl(list);
+  if(P0.draw){hd.appendChild(h('div','gap'));hd.appendChild(tileEl(P(P0.draw)[0],'mark'));}
+  main.appendChild(hd);
+  if(P0.call){const ci=h('div','callin','<span>'+P0.from+'の捨て牌</span>');ci.appendChild(tileEl(P(P0.call)[0],'mark'));main.appendChild(ci);}
+  const ch=h('div','choices');Q.btns=[];
+  P0.ch.forEach((t,i)=>{const b=h('button','btn',t);b.onclick=()=>answerHantei(i);ch.appendChild(b);Q.btns.push(b);});
+  main.appendChild(ch);
+  const act=h('div','actions');const b2=h('button','btn ghost small','次の問題');b2.onclick=newHantei;act.append(b2);main.appendChild(act);
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+}
+function answerHantei(i){
+  if(Q.done)return;Q.done=true;const P0=Q.p;const ok=i===P0.a;
+  Q.btns.forEach((b,k)=>{b.disabled=true;if(k===P0.a)b.classList.add('right');else if(k===i)b.classList.add('wrong');});
+  record('hantei',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':'不正解'));
+  R.appendChild(h('div',null,P0.exp));
+  if(!P0.call&&!P0.draw){const w=waitsOf(cnt(P(P0.hand)));if(w.length){const p=h('div','note','待ち：');p.appendChild(tilesInline(w));R.appendChild(p);}}
+  renderStreak('hantei');
+}
+
+/* ---------- オーラス（逆転条件） ---------- */
+const RON_C=[[1000,'1翻30符'],[1300,'1翻40符'],[1600,'1翻50符・2翻25符'],[2000,'2翻30符'],[2600,'2翻40符'],[3200,'2翻50符'],[3900,'3翻30符'],[5200,'3翻40符'],[6400,'3翻50符'],[7700,'4翻30符'],[8000,'満貫'],[12000,'跳満'],[16000,'倍満'],[24000,'三倍満'],[32000,'役満']];
+const TSUMO_C=[[300,500,'1翻30符'],[400,700,'1翻40符・2翻20符'],[400,800,'2翻25符'],[500,1000,'2翻30符'],[700,1300,'2翻40符・3翻20符'],[800,1600,'2翻50符'],[1000,2000,'3翻30符'],[1300,2600,'3翻40符・4翻20符'],[1600,3200,'3翻50符'],[2000,3900,'4翻30符'],[2000,4000,'満貫'],[3000,6000,'跳満'],[4000,8000,'倍満'],[6000,12000,'三倍満'],[8000,16000,'役満']];
+function orasResult(sc,dealer,type,from,honba,kyo,idx){ // 自分(0)が和了したあとの点数
+  const s=sc.slice();
+  if(type==='tsumo'){const [ko,oya]=TSUMO_C[idx];
+    for(let i=1;i<4;i++){const pay=(i===dealer?oya:ko)+100*honba;s[i]-=pay;s[0]+=pay;}}
+  else{const v=RON_C[idx][0]+300*honba;s[from]-=v;s[0]+=v;}
+  s[0]+=1000*kyo;return s;
+}
+function newOras(){
+  let G=null;
+  for(let a=0;a<500&&!G;a++){
+    const kyo=Math.random()<0.5?0:1+r(2),honba=Math.random()<0.5?0:1+r(2);
+    const sc=genScores();sc[0]-=1000*kyo;if(sc[0]<1000)continue;
+    const dealer=1+r(3);
+    const above=[1,2,3].filter(i=>sc[i]>sc[0]);if(!above.length)continue;
+    const target=pick(above);if(sc[target]-sc[0]>12000)continue;
+    const tv=Math.random();const type=tv<0.4?'direct':tv<0.75?'tsumo':'other';
+    const from=type==='direct'?target:type==='other'?pick([1,2,3].filter(i=>i!==target)):null;
+    const table=type==='tsumo'?TSUMO_C:RON_C;
+    let ans=-1,tie=false;
+    for(let k=0;k<table.length;k++){const s=orasResult(sc,dealer,type==='tsumo'?'tsumo':'ron',from,honba,kyo,k);
+      if(s[0]===s[target])tie=true;
+      if(s[0]>s[target]){ans=k;break;}}
+    if(ans<0||tie)continue;
+    if(ans===0&&Math.random()<0.7)continue;
+    if(table[ans][table[ans].length-1].match(/倍満|三倍満|役満/)&&Math.random()<0.85)continue;
+    G={sc,dealer,target,type,from,honba,kyo,ans,table,done:false};
+  }
+  if(!G){toast('問題を作れませんでした。もう一度押してください');return;}
+  Q=G;
+  subBar([],streakText('oras'));
+  main.innerHTML='';
+  const tn=NAMES[Q.target];
+  const how=Q.type==='direct'?tn+'から<b>直撃（ロン）</b>':Q.type==='tsumo'?'<b>ツモ</b>':NAMES[Q.from]+'から<b>ロン</b>';
+  main.appendChild(h('div','q','オーラス。'+how+'で'+tn+'を抜くのに必要な、いちばん安い打点は？'));
+  main.appendChild(scoresEl(Q.sc,Q.dealer,[Q.target]));
+  main.appendChild(h('div','sit','あなたは子。本場：<b>'+Q.honba+'本場</b>　供託（リーチ棒）：<b>'+Q.kyo+'本</b>　同点は不可（必ず上回る）'));
+  // 選択肢：正解と近い3つ
+  const idxs=new Set([Q.ans]);const near=[Q.ans-1,Q.ans+1,Q.ans+2,Q.ans-2,Q.ans+3].filter(k=>k>=0&&k<Q.table.length);
+  for(const k of near){if(idxs.size>=4)break;idxs.add(k);}
+  const opts=[...idxs].sort((x,y)=>x-y);
+  const lab=k=>Q.type==='tsumo'?Q.table[k][0].toLocaleString()+'-'+Q.table[k][1].toLocaleString()+'（'+Q.table[k][2]+'）':Q.table[k][0].toLocaleString()+'（'+Q.table[k][1]+'）';
+  const ch=h('div','choices');Q.btns=[];
+  opts.forEach(k=>{const b=h('button','btn',lab(k)+(Q.type==='tsumo'?' <span class="note">子-親</span>':''));b.onclick=()=>answerOras(k);ch.appendChild(b);Q.btns.push([b,k]);});
+  main.appendChild(ch);
+  const act=h('div','actions');const b2=h('button','btn ghost small','次の問題');b2.onclick=newOras;act.append(b2);main.appendChild(act);
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+}
+function answerOras(k){
+  if(Q.done)return;Q.done=true;const ok=k===Q.ans;
+  Q.btns.forEach(([b,x])=>{b.disabled=true;if(x===Q.ans)b.classList.add('right');else if(x===k)b.classList.add('wrong');});
+  record('oras',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':'不正解'));
+  const T=Q.target,tn=NAMES[T];const gap=Q.sc[T]-Q.sc[0];
+  const typ=Q.type==='tsumo'?'tsumo':'ron';
+  const show=x=>{const s=orasResult(Q.sc,Q.dealer,typ,Q.from,Q.honba,Q.kyo,x);return '自分 '+s[0].toLocaleString()+' 対 '+tn+' '+s[T].toLocaleString();};
+  let why='点差は <b>'+gap.toLocaleString()+'点</b>。';
+  if(Q.type==='direct')why+='直撃は相手から点を取るので、差は「打点の2倍」縮みます。';
+  else if(Q.type==='tsumo')why+='ツモは全員から取るので、'+tn+'の支払い分（'+(T===Q.dealer?'親なので多め':'子の支払い')+'）だけ差がさらに縮みます。';
+  else why+='他の人からのロンでは、'+tn+'の点は減りません。打点そのもので差を越える必要があります。';
+  if(Q.honba)why+=' 本場は'+(typ==='ron'?'1本につき300点':'1本につき各100点')+'加わります。';
+  if(Q.kyo)why+=' 供託のリーチ棒'+Q.kyo+'本（'+(Q.kyo*1000).toLocaleString()+'点）も和了った人がもらいます。';
+  R.appendChild(h('div',null,why));
+  R.appendChild(h('div',null,'正解の打点で和了すると：<b>'+show(Q.ans)+'</b>'+(Q.ans>0?'<br>1つ下の打点だと：'+show(Q.ans-1):'')));
+  R.appendChild(h('div','note','直撃なら点差の半分を少し超えればよい、が基本の目安です。'));
+  renderStreak('oras');
+}
+
+/* ---------- 知識（4択） ---------- */
+const KQ=[
+ ['雀頭がない手で、2357萬の形。どれを切るのが基本？',['7萬','2萬','3萬','5萬'],'2357は57を外して23を残すのが基本。ただし雀頭がないときは7を切って235に。4を引けば2345、2を引けば雀頭ができます（ゆうせーさんの動画）。'],
+ ['34468・35568・単独の嵌張。強い順に正しいのは？',['34468 ＞ 嵌張 ＞ 35568','35568 ＞ 34468 ＞ 嵌張','嵌張 ＞ 34468 ＞ 35568','34468 ＞ 35568 ＞ 嵌張'],'34468（両面＋468）はとても強い形なので手をつけず、35568は単独の嵌張より弱いのでここから外します（発男道場）。'],
+ ['5ブロック理論。1シャンテンの時点で受け入れが広いのは？',['5ブロックに絞った手','6ブロックを残した手','どちらも同じ','向聴数による'],'2シャンテンでは6ブロックの方が少し広いが、1シャンテンでは5ブロックの方が広い（例：20枚対16枚）。いちばん遅い「1シャンテン→テンパイ」を速くするため、早めに5ブロックにします。'],
+ ['リーチに対する平均の放銃率が、いちばん高いのは？',['無スジの4・5・6','無スジの3・7','片スジの4・5・6','無スジの1・9'],'riichi.wiki の表では、無スジの4・5・6が約13.9%で最も危険（両面2つに当たる）。無スジの3・7は約10.1%、片スジの4・5・6は約8.1%、無スジの1・9は約8.0%。'],
+ ['平均の放銃率がいちばん低いのは？',['スジの1・9','字牌（2枚目）','両スジの4・5・6','スジの2・8'],'スジの1・9が約1.9%、2枚目の字牌が約2.2%、両スジの4・5・6が約2.4%、スジの2・8が約4.0%（riichi.wiki）。'],
+ ['9巡目のデータで、リーチ宣言牌のスジの3・7の放銃率に近いのは？',['無スジの2・8（約8.6%）','スジの1・9（約2%）','スジの2・8（約4%）','字牌の生牌（約5%）'],'宣言牌のスジの3・7は約8.4%で、無スジの1・9（7.4%）や2・8（8.6%）とほとんど同じ。468から4を切ってリーチ→7待ち、が多いためです（雀太郎ちゃんねるの動画）。'],
+ ['「222の法則」で、鳴いている相手に無筋を切らない条件は？',['相手2副露・捨て牌2段目・自分2シャンテン以上','相手2副露・ドラ2枚見え・自分2シャンテン','相手2回手出し・2段目・自分テンパイ','相手2副露・2巡連続ツモ切り・自分1シャンテン'],'3つの「2」がそろったら、テンパイしているかもしれない相手に、遅れている自分が無筋を切る意味はありません（発男道場）。'],
+ ['222の法則。相手が1副露なら、捨て牌の何段目から同じように考える？',['3段目','1段目','2段目','4段目'],'1副露なら3段目、3副露なら1段目から。自分が2シャンテン以上という条件は変わりません（発男道場）。'],
+ ['平和ドラ4（両面・ダマ満貫）を東場でテンパイ。何巡目くらいまではリーチがよいとされる？',['8巡目','5巡目','11巡目','14巡目'],'東場なら8巡目までリーチ、9巡目以降はダマ。14巡目ではダマの方が1局あたり約400点よいというデータが紹介されています（ゆうせーさんの動画）。'],
+ ['リーチの価値は、一発・裏ドラ・ツモ込みで平均およそ何翻分？',['約1.5翻','約1翻','約2.5翻','約3翻'],'リーチの1翻に、一発・裏ドラ・ツモの上乗せを含めると平均で約1.5翻分（riichi.wiki）。満貫未満なら平均打点が約3倍になります。'],
+ ['8巡目の両面テンパイ。リーチとダマの和了率に近いのは？',['リーチ約57%・ダマ約73%','リーチ約70%・ダマ約72%','リーチ約40%・ダマ約80%','どちらも約50%'],'和了率はダマの約0.8倍に下がりますが、打点は約3倍になるのでリーチが得、という理屈です（平澤元気プロが本のデータを紹介）。'],
+ ['赤5と、孤立した生牌のドラ。形を優先して切ってよいのは？',['赤5','生牌のドラ','どちらも残す','どちらも同じ価値'],'赤5は重なっても打点が増えませんが、ドラは重なるとドラ2になります。なので孤立したドラの方を残す価値が高い（発男道場）。'],
+ ['対子が3つある手の、一般的な扱いは？',['1つ崩して2つにする','3つとも残す','2つ崩して1つにする','七対子に決め打つ'],'3対子は中途半端なので1つ崩して2対子に。2対子を1対子に減らすと受け入れが20枚→16枚に減るので、2対子は残します。'],
+ ['浮き牌のくっつきの強さ。正しい順は？',['4連形 ＞ 中ぶくれ ＞ 亜両面','中ぶくれ ＞ 4連形 ＞ 亜両面','亜両面 ＞ 中ぶくれ ＞ 4連形','どれも同じ'],'4連形（3456など）は8種を受けて最強。中ぶくれ（2334）、亜両面（5677）の順（発男道場）。'],
+ ['嵌張の中で、特に弱いとされるのは？',['24と68','35と57','13と79','46'],'24・68は両面に変わる牌が1種類だけで、待ちも3・7になるので最弱（発男道場）。'],
+ ['7筒を対子落としした人のリーチ。8筒と9筒、安全なのは？',['8筒','9筒','同じくらい','どちらも危ない'],'7筒の対子落としで8筒が当たる形はほぼない。9筒は7799から7を落としてシャンポン、があるので8筒の方が安全（雀太郎ちゃんねるの動画）。'],
+ ['嵌張落とし。テンパイが速い可能性が高いのは？',['3→1の順に切った','1→3の順に切った','同じ','字牌が先'],'3→1は、ほかが両面で固まっていて危ない3から先に切った形が多い。1→3は、4を引いて両面に変えたい＝まだ愚形が残っていることが多い（雀太郎ちゃんねるの動画）。'],
+ ['4→6の順に嵌張落としした人のリーチ。本命の待ちは？',['5-8','2-5','3-6','1-4'],'2-5待ちになる形を持っていたら、受け入れを広く残すために6から先に切るのが自然。4→6の順なら2-5は薄く、5-8が本命（8は愚形でも当たりやすい）（雀太郎ちゃんねるの動画）。'],
+ ['役牌（白）の対子落としが入った。意味することは？',['打点も形もそろった1シャンテン以上の可能性が高い','役がなくて困っている','七対子に決めた','降りている'],'鳴くだけで役になる白を落とすのは、タンヤオ・平和などで手がまとまっているサイン（雀太郎ちゃんねるの動画）。'],
+ ['両面・両面の1シャンテンからテンパイまで、平均どれくらいかかるとされる？',['約8巡','約3巡','約5巡','約12巡'],'1シャンテンからテンパイは思ったより遅い。だから愚形を消して両面テンパイになる鳴きは序盤でも取る、という考え方につながります（発男道場）。'],
+ ['オーラス、2着と5,000点差（自分は子）。直撃で逆転する最低の打点は？',['2,600点','2,000点','3,900点','5,200点'],'直撃は差が打点の2倍縮むので、2,600点で5,200点縮んで逆転。2,000点では4,000点しか縮みません。'],
+ ['多井隆晴プロが「これがないと1半荘あたり約1,000点損」と言う技術は？',['終盤に鳴いて形式テンパイを取るなどの粘り','点数計算','何切るの丸暗記','早いリーチ'],'和了るか降りるかの2択だけでなく、粘ってテンパイを取る技術の差が大きい（たかちゃんねるの動画）。'],
+ ['天鳳位ヨーテルさんの考え方に近いのは？',['細かい枚数比較より、大まかな方針（ホンイツなら他の色は切る、配牌が悪ければ守り）','いつも受け入れ最大の打牌を厳密に選ぶ','どんな手でも全部押す','鳴きは一切しない'],'上級者は細かい比較で悩まず、方針を大づかみに決めてミスを減らしている、という話（ヨーテルさんの動画）。'],
+ ['2巡目に8萬を切っている人のリーチ。9萬の安全度は？',['外側のスジ（スジの3・7）と同じか、それより安全なことが多い','無スジの4・5・6並みに危険','現物と同じ','字牌の生牌より危険'],'788から8を切って両面に固定するのは少ないので、9萬は外側のスジくらい安全なことが多い（平澤元気プロの守備講座）。'],
+ ['勝負手のとき、生牌の字牌はいつごろまでに切っておくのがよいとされる？',['5〜6巡目','1〜2巡目','10巡目','切らずに最後まで持つ'],'テンパイの平均は8〜9巡目ごろ。後になるほど危なくなるので、勝負手なら早めに切っておきます。'],
+ ['「3悪」（鳴かない方がよい仕掛け）に入らないのは？',['役牌の対子がある','面子が0','愚形が残る','打点が決まらない'],'3悪は「面子0・愚形残り・打点不確定」。役牌の対子があれば打点は決まっています（ゆうせーさんの動画）。'],
+ ['1シャンテンの押し引きで判断に使う3つの要素は？',['打点・形・巡目','ドラ・赤・裏','親・子・点差','字牌・端牌・中張牌'],'3つのうち2つ以上が悪ければ降り、が目安です（発男道場の1シャンテンの押し引き）。']
+];
+let KBAG=[];
+function newChishiki(){
+  if(!KBAG.length)KBAG=shuffle([...Array(KQ.length).keys()]);
+  const [q,choices,exp]=KQ[KBAG.pop()];
+  const order=shuffle(choices.map((c,i)=>i));
+  Q={q,choices,exp,order,done:false};
+  subBar([],streakText('chishiki'));
+  main.innerHTML='';
+  main.appendChild(h('div','q',q));
+  const ch=h('div','choices');Q.btns=[];
+  order.forEach(i=>{const b=h('button','btn',choices[i]);b.onclick=()=>answerChishiki(i);ch.appendChild(b);Q.btns.push([b,i]);});
+  main.appendChild(ch);
+  const act=h('div','actions');const b2=h('button','btn ghost small','次の問題');b2.onclick=newChishiki;act.append(b2);main.appendChild(act);
+  const res=h('div','result');main.appendChild(res);Q.res=res;
+}
+function answerChishiki(i){
+  if(Q.done)return;Q.done=true;const ok=i===0;
+  Q.btns.forEach(([b,x])=>{b.disabled=true;if(x===0)b.classList.add('right');else if(x===i)b.classList.add('wrong');});
+  record('chishiki',ok);
+  const R=Q.res;R.innerHTML='';
+  R.appendChild(h('div','verdict '+(ok?'ok':'ng'),ok?'正解！':'不正解'));
+  R.appendChild(h('div',null,Q.exp));
+  renderStreak('chishiki');
 }
 
 /* ---------- 記録 ---------- */
@@ -569,9 +973,10 @@ function renderRec(){
     '<div class="note">正解の合計 '+R.n+'問。'+(nxt?'あと'+R.next+'問で'+nxt[1]+'。':'雀聖に到達しました。')+'雀聖は正解400問。</div>';
   main.appendChild(top);
   const st=h('div','stat');
-  [['wait','待ち当て'],['nani','何切る'],['oshi','押し引き']].forEach(([k,n])=>{const m=S[k];
-    const c=h('div','card');c.innerHTML='<h3>'+n+'</h3><div class="kv"><span>正解</span><span>'+m.ok+' / '+m.n+'問'+(m.n?'（'+Math.round(m.ok/m.n*100)+'%）':'')+'</span><span>連続正解</span><span>'+m.streak+'</span><span>最高記録</span><span>'+m.best+'連続</span></div>';
+  MODES.forEach(([k,n])=>{const m=S[k];
+    const c=h('div','card');c.style.padding='6px 10px';c.innerHTML='<h3>'+n+'</h3><div class="kv"><span>正解</span><span>'+m.ok+' / '+m.n+(m.n?'（'+Math.round(m.ok/m.n*100)+'%）':'')+'</span><span>最高</span><span>'+m.best+'連続</span></div>';
     st.appendChild(c);});
+  st.style.overflow='auto';st.style.minHeight='0';
   const c4=h('div','card');c4.innerHTML='<h3>保存</h3><div class="note" style="margin-bottom:6px">記録はこの端末のブラウザに保存されます。答えるたびに自動で保存し、上の「セーブ」でも保存できます。</div>';
   const rb=h('button','btn small ghost','記録を消す');rb.onclick=()=>{if(rb.dataset.c){S=blank();save(true);renderRank();renderRec();}else{rb.dataset.c=1;rb.textContent='もう一度押すと消えます';}};
   c4.appendChild(rb);st.appendChild(c4);main.appendChild(st);
